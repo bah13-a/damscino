@@ -6,6 +6,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import org.hibernate.annotations.DynamicUpdate;
 import tn.damascino.common.security.AuthenticatedUser;
 import tn.damascino.common.security.Role;
 
@@ -15,11 +17,15 @@ import java.util.UUID;
 
 /** Credentials of an administrator, a scanner staff member or a beneficiary. */
 @Entity
+@DynamicUpdate
 @Table(name = "account")
 public class Account {
 
     @Id
     private UUID id;
+
+    @Version
+    private long version;
 
     @Column(nullable = false, unique = true)
     private String username;

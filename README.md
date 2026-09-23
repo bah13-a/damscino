@@ -105,6 +105,26 @@ cd backend && mvn verify                 # tests unitaires (règles, QR, import,
 cd frontend && npm run lint && npm run typecheck && npm run build
 ```
 
+### Tests de bout en bout (Playwright)
+
+36 scénarios sur les trois espaces, contre une stack démarrée (locale ou Render) : connexion et changement de mot
+de passe imposé, blocage, droits par rôle, partenaires et règles, catégories, import Excel/CSV et export des accès,
+bénéficiaires, comptes, QR renouvelé toutes les 30 s, session unique, **scan par caméra** (QR injecté dans une caméra
+simulée), refus (code falsifié, expiré, déjà utilisé, bénéficiaire ou partenaire inactif), quota hebdomadaire,
+validations simultanées, déconnexion du scanner après inactivité, statistiques, journaux et exports, PWA et
+affichage mobile.
+
+```bash
+docker compose up -d --build
+cd e2e && npm ci && npx playwright install chromium
+npx playwright test                      # E2E_BASE_URL=https://damascino-privileges.onrender.com pour Render
+npx playwright show-report
+```
+
+Les tests créent leurs propres données (noms uniques) ; au premier lancement ils remplacent le mot de passe initial
+de `admin` par `E2E_ADMIN_PASSWORD` (défaut `Admin-E2E-2026`, mot de passe initial lu dans
+`E2E_ADMIN_INITIAL_PASSWORD`).
+
 ## Arborescence
 
 ```
@@ -116,6 +136,7 @@ backend/
   privilege-service/  QR dynamique, contrôle et validation des passages
   reporting-service/  statistiques, journaux, exports
 frontend/             PWA Next.js (espaces bénéficiaire, personnel, administration)
+e2e/                  tests de bout en bout Playwright
 infra/backup/         sauvegarde PostgreSQL chiffrée quotidienne (rétention 30 jours)
 docs/                 architecture, déploiement
 ```

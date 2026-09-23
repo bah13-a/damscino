@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import org.hibernate.annotations.DynamicUpdate;
 import tn.damascino.common.events.BeneficiaryChanged;
 
 import java.time.Instant;
@@ -11,11 +13,15 @@ import java.util.UUID;
 
 /** A person authorised by a partner. The phone number is the personal login (V1: one number, one partner). */
 @Entity
+@DynamicUpdate
 @Table(name = "beneficiary")
 public class Beneficiary {
 
     @Id
     private UUID id;
+
+    @Version
+    private long version;
 
     @Column(name = "partner_id", nullable = false)
     private UUID partnerId;

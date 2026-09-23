@@ -43,6 +43,11 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
             throw ApiException.forbidden("FORBIDDEN", "Réservé aux bénéficiaires");
         }
         BeneficiaryProjection beneficiary = beneficiaries.findById(query.user().beneficiaryId()).orElse(null);
+        if (beneficiary != null && query.user().sessionVersion() < beneficiary.getSessionVersion()) {
+            // the screen polls this endpoint: the previous device is signed out within seconds
+            throw ApiException.unauthorized("SESSION_REPLACED",
+                    "Votre compte est connecté sur un autre appareil. Reconnectez-vous pour utiliser votre avantage.");
+        }
         PartnerProjection partner = beneficiary == null || beneficiary.getPartnerId() == null
                 ? null : partners.findById(beneficiary.getPartnerId()).orElse(null);
         if (beneficiary == null || !beneficiary.isKnown() || partner == null) {
