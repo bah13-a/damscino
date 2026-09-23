@@ -1,0 +1,50 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:damascino}?currentSchema=identity${DB_URL_PARAMS:}
+    username: ${DB_USER:damascino}
+    password: ${DB_PASSWORD:damascino}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    schemas: identity
+    default-schema: identity
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: 1s
+          multiplier: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+damascino:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-in-production}
+    access-ttl: ${JWT_ACCESS_TTL:15m}
+  sessions:
+    beneficiary-ttl: ${BENEFICIARY_SESSION_TTL:180d}
+    staff-ttl: ${STAFF_SESSION_TTL:12h}
+    admin-ttl: ${ADMIN_SESSION_TTL:12h}
+  lockout:
+    max-attempts: 5
+    duration: 15m
+  bootstrap:
+    admin-username: ${ADMIN_USERNAME:admin}
+    admin-password: ${ADMIN_PASSWORD:Damascino2026!}

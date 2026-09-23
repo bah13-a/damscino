@@ -1,0 +1,89 @@
+# Local stack: docker compose up --build   →   http://localhost:3000
+# (admin / Damascino2026! at first login, password change forced)
+x-backend-env: &backend-env
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_NAME: damascino
+  DB_USER: damascino
+  DB_PASSWORD: ${DB_PASSWORD:-damascino}
+  RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+  JWT_SECRET: ${JWT_SECRET:-local-jwt-secret-change-me-please}
+  TZ: Africa/Tunis
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: damascino
+      POSTGRES_USER: damascino
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-damascino}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U damascino -d damascino"]
+      interval: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      retries: 20
+
+  identity-service:
+    build: { context: ./backend, dockerfile: identity-service/Dockerfile }
+    environment:
+      <<: *backend-env
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Damascino2026!}
+    depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
+
+  partner-service:
+    build: { context: ./backend, dockerfile: partner-service/Dockerfile }
+    environment:
+      <<: *backend-env
+      CREDENTIALS_SECRET: ${CREDENTIALS_SECRET:-local-credentials-secret-change-me}
+    depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
+
+  privilege-service:
+    build: { context: ./backend, dockerfile: privilege-service/Dockerfile }
+    environment:
+      <<: *backend-env
+      QR_SECRET: ${QR_SECRET:-local-qr-secret-change-me-please}
+    depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
+
+  reporting-service:
+    build: { context: ./backend, dockerfile: reporting-service/Dockerfile }
+    environment:
+      <<: *backend-env
+    depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
+
+  gateway:
+    build: { context: ./backend, dockerfile: gateway/Dockerfile }
+    environment:
+      IDENTITY_URL: http://identity-service:8081
+      PARTNER_URL: http://partner-service:8082
+      PRIVILEGE_URL: http://privilege-service:8083
+      REPORTING_URL: http://reporting-service:8084
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on: [identity-service, partner-service, privilege-service, reporting-service]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_URL: http://gateway:8080
+    ports:
+      - "3000:3000"
+    depends_on: [gateway]
+
+volumes:
+  pgdata:

@@ -1,0 +1,45 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: privilege-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:damascino}?currentSchema=privilege${DB_URL_PARAMS:}
+    username: ${DB_USER:damascino}
+    password: ${DB_PASSWORD:damascino}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    schemas: privilege
+    default-schema: privilege
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: 1s
+          multiplier: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+damascino:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-in-production}
+  qr:
+    # signs the dynamic QR codes; distinct from the JWT secret
+    secret: ${QR_SECRET:dev-only-qr-secret-change-me-in-production}
+    # the screen renews the code every 30 s; a short grace covers the time needed to scan it
+    refresh-interval: 30s
+    ttl: 40s

@@ -1,0 +1,137 @@
+# Render Blueprint - Damascino Privilèges (test environment)
+# Dashboard → New → Blueprint → select this repository.
+# Before applying: create a free RabbitMQ instance on CloudAMQP (plan "Little Lemur") and paste its AMQPS URL
+# when Render asks for RABBITMQ_URL. See docs/DEPLOIEMENT_RENDER.md.
+#
+# Each backend service calls the others through their public onrender.com URL (free instances cannot receive
+# private-network traffic). If Render adds a suffix to a service name (name already taken), update the URLs of
+# the gateway and API_URL of the frontend accordingly.
+
+envVarGroups:
+  - name: damascino-shared
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RABBITMQ_URL
+        sync: false
+      - key: TZ
+        value: Africa/Tunis
+      - key: DB_POOL_SIZE
+        value: "4"
+
+databases:
+  - name: damascino-db
+    databaseName: damascino
+    user: damascino
+    region: frankfurt
+    plan: free
+
+services:
+  - type: web
+    name: damascino-identity
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/identity-service/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - fromGroup: damascino-shared
+      - { key: DB_HOST, fromDatabase: { name: damascino-db, property: host } }
+      - { key: DB_PORT, fromDatabase: { name: damascino-db, property: port } }
+      - { key: DB_NAME, fromDatabase: { name: damascino-db, property: database } }
+      - { key: DB_USER, fromDatabase: { name: damascino-db, property: user } }
+      - { key: DB_PASSWORD, fromDatabase: { name: damascino-db, property: password } }
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+
+  - type: web
+    name: damascino-partner
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/partner-service/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - fromGroup: damascino-shared
+      - { key: DB_HOST, fromDatabase: { name: damascino-db, property: host } }
+      - { key: DB_PORT, fromDatabase: { name: damascino-db, property: port } }
+      - { key: DB_NAME, fromDatabase: { name: damascino-db, property: database } }
+      - { key: DB_USER, fromDatabase: { name: damascino-db, property: user } }
+      - { key: DB_PASSWORD, fromDatabase: { name: damascino-db, property: password } }
+      - key: CREDENTIALS_SECRET
+        generateValue: true
+
+  - type: web
+    name: damascino-privilege
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/privilege-service/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - fromGroup: damascino-shared
+      - { key: DB_HOST, fromDatabase: { name: damascino-db, property: host } }
+      - { key: DB_PORT, fromDatabase: { name: damascino-db, property: port } }
+      - { key: DB_NAME, fromDatabase: { name: damascino-db, property: database } }
+      - { key: DB_USER, fromDatabase: { name: damascino-db, property: user } }
+      - { key: DB_PASSWORD, fromDatabase: { name: damascino-db, property: password } }
+      - key: QR_SECRET
+        generateValue: true
+
+  - type: web
+    name: damascino-reporting
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/reporting-service/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - fromGroup: damascino-shared
+      - { key: DB_HOST, fromDatabase: { name: damascino-db, property: host } }
+      - { key: DB_PORT, fromDatabase: { name: damascino-db, property: port } }
+      - { key: DB_NAME, fromDatabase: { name: damascino-db, property: database } }
+      - { key: DB_USER, fromDatabase: { name: damascino-db, property: user } }
+      - { key: DB_PASSWORD, fromDatabase: { name: damascino-db, property: password } }
+
+  - type: web
+    name: damascino-gateway
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/gateway/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: IDENTITY_URL
+        value: https://damascino-identity.onrender.com
+      - key: PARTNER_URL
+        value: https://damascino-partner.onrender.com
+      - key: PRIVILEGE_URL
+        value: https://damascino-privilege.onrender.com
+      - key: REPORTING_URL
+        value: https://damascino-reporting.onrender.com
+      - key: CORS_ORIGINS
+        value: https://damascino-privileges.onrender.com
+
+  - type: web
+    name: damascino-privileges
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: API_URL
+        value: https://damascino-gateway.onrender.com
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

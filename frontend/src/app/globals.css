@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-50: 253 242 243;
+  --brand-100: 249 225 228;
+  --brand-600: 150 42 56;
+  --brand-700: 122 31 43;
+  --brand-800: 98 24 34;
+  --brand-900: 70 16 24;
+  --gold-400: 219 186 84;
+  --gold-500: 201 162 39;
+  --canvas: 250 246 239;
+  --surface: 255 255 255;
+  --ink: 33 24 22;
+  --muted: 110 98 92;
+  --line: 229 221 210;
+  --font-sans: 'Inter';
+  --font-display: 'Playfair Display';
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --brand-50: 58 22 27;
+    --brand-100: 76 28 35;
+    --brand-600: 214 104 118;
+    --brand-700: 196 78 93;
+    --brand-800: 226 132 144;
+    --brand-900: 240 170 180;
+    --canvas: 22 18 17;
+    --surface: 33 28 27;
+    --ink: 240 234 228;
+    --muted: 170 160 152;
+    --line: 60 52 50;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --brand-50: 58 22 27;
+  --brand-100: 76 28 35;
+  --brand-600: 214 104 118;
+  --brand-700: 196 78 93;
+  --brand-800: 226 132 144;
+  --brand-900: 240 170 180;
+  --canvas: 22 18 17;
+  --surface: 33 28 27;
+  --ink: 240 234 228;
+  --muted: 170 160 152;
+  --line: 60 52 50;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Damask-inspired background pattern for the public screens */
+.bg-damask {
+  background-color: rgb(var(--brand-700));
+  background-image:
+    radial-gradient(circle at 25% 25%, rgb(var(--gold-500) / 0.12) 2px, transparent 3px),
+    radial-gradient(circle at 75% 75%, rgb(var(--gold-500) / 0.12) 2px, transparent 3px);
+  background-size: 28px 28px;
+}
+
+@keyframes dp-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* Moving bar under the QR code: proves to the cashier that the screen is live, not a screenshot */
+.live-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(var(--gold-500)), transparent);
+  animation: dp-sweep 1.6s linear infinite;
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
