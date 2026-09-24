@@ -9,6 +9,7 @@ import tn.damascino.privilege.application.query.MyPrivilegeQuery.Availability;
 import tn.damascino.privilege.application.query.MyPrivilegeQuery.Dashboard;
 import tn.damascino.privilege.application.query.MyPrivilegeQuery.Passage;
 import tn.damascino.privilege.domain.EligibilityPolicy;
+import tn.damascino.privilege.application.QuotaService;
 import tn.damascino.privilege.domain.RedemptionRepository;
 import tn.damascino.privilege.domain.RefusalReason;
 import tn.damascino.privilege.projection.BeneficiaryProjection;
@@ -26,13 +27,15 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
     private final BeneficiaryProjectionRepository beneficiaries;
     private final PartnerProjectionRepository partners;
     private final RedemptionRepository redemptions;
+    private final QuotaService quota;
     private final Clock clock;
 
     public MyPrivilegeHandler(BeneficiaryProjectionRepository beneficiaries, PartnerProjectionRepository partners,
-                              RedemptionRepository redemptions, Clock clock) {
+                              RedemptionRepository redemptions, QuotaService quota, Clock clock) {
         this.beneficiaries = beneficiaries;
         this.partners = partners;
         this.redemptions = redemptions;
+        this.quota = quota;
         this.clock = clock;
     }
 
@@ -57,7 +60,7 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
         }
 
         LocalDate today = LocalDate.now(clock);
-        long used = redemptions.countByBeneficiaryIdAndPeriodKey(beneficiary.getId(), partner.getUsagePeriod().keyOf(today));
+        long used = quota.used(beneficiary.getId(), partner.getUsagePeriod().keyOf(today));
         RefusalReason refusal = EligibilityPolicy.evaluate(beneficiary, partner, today, used).orElse(null);
         Availability availability = refusal == null ? Availability.AVAILABLE : switch (refusal) {
             case QUOTA_REACHED -> Availability.USED;
@@ -78,7 +81,7 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
             case PENDING -> "En cours d'activation";
         };
 
-        List<Passage> history = redemptions.findByBeneficiaryIdOrderByValidatedAtDesc(beneficiary.getId(),
+        List<Passage> history = redemptions.findHistory(beneficiary.getId(),
                         PageRequest.of(0, 50)).stream()
                 .map(r -> new Passage(r.getId(), r.getValidatedAt(), r.getDiscountPercent(), r.getDishPrice(),
                         r.getDiscountAmount()))

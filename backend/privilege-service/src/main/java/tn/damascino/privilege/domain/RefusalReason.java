@@ -11,7 +11,11 @@ public enum RefusalReason {
     PARTNER_INACTIVE("Partenaire inactif"),
     CONVENTION_NOT_STARTED("Convention pas encore commencée"),
     CONVENTION_EXPIRED("Convention expirée"),
-    QUOTA_REACHED("Avantage déjà utilisé pour cette période");
+    QUOTA_REACHED("Avantage déjà utilisé pour cette période"),
+    NO_ELIGIBLE_ITEM("Aucun plat éligible sur ce ticket"),
+    TICKET_ALREADY_DISCOUNTED("Une remise Damascino Privilèges est déjà appliquée sur ce ticket"),
+    RESERVATION_NOT_FOUND("Réservation introuvable pour ce ticket"),
+    RESERVATION_EXPIRED("Réservation expirée : scannez à nouveau le QR code du client");
 
     private final String message;
 

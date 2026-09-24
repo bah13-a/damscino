@@ -66,6 +66,7 @@ export interface ScanResult {
   dishPrice: number | null;
   discountAmount: number | null;
   validatedAt: string | null;
+  validationCode: string | null;
 }
 
 export interface Partner {
@@ -143,6 +144,13 @@ export interface UsageRow {
   dishPrice: number | null;
   discountPercent: number;
   discountAmount: number | null;
+  channel: 'SCANNER' | 'POS';
+  posTerminal: string | null;
+  ticketId: string | null;
+  dishLabel: string | null;
+  validationCode: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
 }
 
 export interface RejectionRow {
@@ -187,4 +195,25 @@ export interface Statistics {
     discountTotal: number;
   }[];
   byDay: { day: string; redemptions: number; activeUsers: number; discountTotal: number }[];
+}
+
+export interface PosTerminal {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  active: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface PosTerminalWithKey {
+  terminal: PosTerminal;
+  apiKey: string;
+}
+
+export interface PosProduct {
+  sku: string;
+  label: string | null;
+  category: string;
+  updatedAt: string;
 }

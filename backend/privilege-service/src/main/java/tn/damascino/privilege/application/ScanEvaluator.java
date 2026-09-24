@@ -5,7 +5,6 @@ import tn.damascino.common.events.RedemptionRejected;
 import tn.damascino.common.outbox.EventPublisher;
 import tn.damascino.common.security.AuthenticatedUser;
 import tn.damascino.privilege.domain.EligibilityPolicy;
-import tn.damascino.privilege.domain.RedemptionRepository;
 import tn.damascino.privilege.domain.RefusalReason;
 import tn.damascino.privilege.projection.BeneficiaryProjection;
 import tn.damascino.privilege.projection.BeneficiaryProjectionRepository;
@@ -26,17 +25,17 @@ public class ScanEvaluator {
     private final QrTokenService qrTokens;
     private final BeneficiaryProjectionRepository beneficiaries;
     private final PartnerProjectionRepository partners;
-    private final RedemptionRepository redemptions;
+    private final QuotaService quota;
     private final EventPublisher events;
     private final Clock clock;
 
     public ScanEvaluator(QrTokenService qrTokens, BeneficiaryProjectionRepository beneficiaries,
-                         PartnerProjectionRepository partners, RedemptionRepository redemptions, EventPublisher events,
+                         PartnerProjectionRepository partners, QuotaService quota, EventPublisher events,
                          Clock clock) {
         this.qrTokens = qrTokens;
         this.beneficiaries = beneficiaries;
         this.partners = partners;
-        this.redemptions = redemptions;
+        this.quota = quota;
         this.events = events;
         this.clock = clock;
     }
@@ -68,7 +67,7 @@ public class ScanEvaluator {
         if (!payload.expiresAt().isAfter(now)) {
             return refused(payload, beneficiary, partner, RefusalReason.QR_EXPIRED);
         }
-        if (redemptions.existsByQrNonce(payload.nonce())) {
+        if (quota.isNonceUsed(payload.nonce())) {
             return refused(payload, beneficiary, partner, RefusalReason.QR_ALREADY_USED);
         }
         if (beneficiary != null && payload.sessionVersion() < beneficiary.getSessionVersion()) {
@@ -76,7 +75,7 @@ public class ScanEvaluator {
         }
         LocalDate today = LocalDate.now(clock);
         String periodKey = partner == null ? null : partner.getUsagePeriod().keyOf(today);
-        long used = periodKey == null ? 0 : redemptions.countByBeneficiaryIdAndPeriodKey(beneficiary.getId(), periodKey);
+        long used = periodKey == null ? 0 : quota.used(beneficiary.getId(), periodKey);
         RefusalReason refusal = EligibilityPolicy.evaluate(beneficiary, partner, today, used).orElse(null);
         return new Evaluation(payload, beneficiary, partner, periodKey, used, refusal);
     }
@@ -97,6 +96,6 @@ public class ScanEvaluator {
         return new ScanResult(ScanResult.Status.REFUSED, evaluation.refusal().name(), evaluation.refusal().message(),
                 b == null ? null : b.fullName(), p == null ? null : p.getName(),
                 p == null ? null : p.getDiscountPercent(), p == null ? null : p.getEligibleCategories(),
-                p == null ? null : p.getExcludedCategories(), null, null, null, null, null);
+                p == null ? null : p.getExcludedCategories(), null, null, null, null, null, null);
     }
 }

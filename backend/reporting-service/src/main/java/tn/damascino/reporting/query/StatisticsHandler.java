@@ -29,7 +29,7 @@ public class StatisticsHandler implements QueryHandler<StatisticsQuery, Statisti
         ReportFilter filter = query.filter();
 
         Where people = beneficiaryFilter(filter);
-        Where usages = filter.onDates("local_date");
+        Where usages = filter.onDates("local_date").and("cancelled_at is null");
         Where refusals = filter.onInstants("occurred_at");
 
         Totals totals = jdbc.queryForObject("""
@@ -53,7 +53,7 @@ public class StatisticsHandler implements QueryHandler<StatisticsQuery, Statisti
             partnerWhere.and("p.id = :partnerId", "partnerId", filter.partnerId());
         }
         String beneficiaryCondition = filter.beneficiaryId() == null ? "" : " and b.id = :beneficiaryId";
-        String usageCondition = usageDateCondition(filter) + (filter.beneficiaryId() == null ? "" : " and u.beneficiary_id = :beneficiaryId");
+        String usageCondition = " and u.cancelled_at is null" + usageDateCondition(filter) + (filter.beneficiaryId() == null ? "" : " and u.beneficiary_id = :beneficiaryId");
         partnerWhere.params.addValues(usages.params.getValues());
         List<PartnerLine> byPartner = jdbc.query("""
                 select p.id, p.name, p.active,

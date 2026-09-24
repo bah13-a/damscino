@@ -9,6 +9,7 @@ public final class EventTypes {
     public static final String BENEFICIARY_SESSION_CHANGED = "identity.beneficiary-session-changed";
     public static final String REDEMPTION_CONFIRMED = "privilege.redemption-confirmed";
     public static final String REDEMPTION_REJECTED = "privilege.redemption-rejected";
+    public static final String REDEMPTION_CANCELLED = "privilege.redemption-cancelled";
     public static final String AUDIT_RECORDED = "audit.recorded";
 
     private EventTypes() {

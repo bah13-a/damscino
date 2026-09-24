@@ -187,6 +187,12 @@ export default function ScannerPage() {
                 Remise accordée : <strong>{dt(result.discountAmount)}</strong> sur {dt(result.dishPrice)}
               </p>
             )}
+            {result.status === 'CONFIRMED' && result.validationCode && (
+              <p className="mt-2 text-sm text-white/90">
+                Code de validation à reporter sur le ticket :{' '}
+                <strong className="font-mono text-lg tracking-widest text-white">{result.validationCode}</strong>
+              </p>
+            )}
 
             <Button
               variant="secondary"

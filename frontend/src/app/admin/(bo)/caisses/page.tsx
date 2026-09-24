@@ -1,0 +1,250 @@
+'use client';
+
+import Link from 'next/link';
+import { useRef, useState, type FormEvent } from 'react';
+import { Alert, Badge, Button, Card, Field, Modal, PageHeader, Select, Table } from '@/components/ui';
+import { api, errorMessage } from '@/lib/api';
+import { categoryLabel, dateTime } from '@/lib/format';
+import type { Category, PosProduct, PosTerminal, PosTerminalWithKey } from '@/lib/types';
+import { useApi } from '@/lib/useApi';
+
+/** Shows a freshly generated API key once. */
+function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  if (!created) return null;
+  return (
+    <Modal open title={`Clé d'API · ${created.terminal.name}`} onClose={onClose}>
+      <Alert tone="info">
+        Copiez cette clé maintenant et transmettez-la à l&apos;éditeur de la caisse : elle ne sera plus affichée. En cas de
+        perte, régénérez-en une nouvelle (l&apos;ancienne cesse aussitôt de fonctionner).
+      </Alert>
+      <p className="mt-4 break-all rounded-xl bg-canvas p-3 font-mono text-sm" data-testid="api-key">
+        {created.apiKey}
+      </p>
+      <div className="mt-4 flex gap-2">
+        <Button
+          variant="secondary"
+          onClick={async () => {
+            await navigator.clipboard?.writeText(created.apiKey);
+            setCopied(true);
+          }}
+        >
+          {copied ? 'Copiée ✓' : 'Copier la clé'}
+        </Button>
+        <Button onClick={onClose}>Fermer</Button>
+      </div>
+    </Modal>
+  );
+}
+
+function Terminals() {
+  const terminals = useApi<PosTerminal[]>('admin', '/api/pos-terminals');
+  const [name, setName] = useState('');
+  const [created, setCreated] = useState<PosTerminalWithKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (action: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await action();
+      await terminals.reload();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
+  const create = (event: FormEvent) => {
+    event.preventDefault();
+    run(async () => {
+      setCreated(await api<PosTerminalWithKey>('admin', '/api/pos-terminals', { method: 'POST', body: { name } }));
+      setName('');
+    });
+  };
+
+  return (
+    <section>
+      <h2 className="mb-1 font-display text-xl font-bold">Postes de caisse</h2>
+      <p className="mb-4 text-sm text-muted">
+        Chaque caisse connectée utilise sa propre clé d&apos;API (en-tête <code className="font-mono">X-Api-Key</code>) : elle
+        apparaît dans le journal des passages et peut être révoquée à tout moment.
+      </p>
+      {(error || terminals.error) && <Alert>{error ?? terminals.error}</Alert>}
+      <form onSubmit={create} className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+        <Field label="Nom de la caisse" placeholder="ex. Caisse 1 – Salle" value={name} onChange={(e) => setName(e.target.value)} required className="flex-1" />
+        <Button type="submit">Ajouter la caisse</Button>
+      </form>
+      {terminals.data && terminals.data.length > 0 && (
+        <Table head={['Caisse', 'Clé', 'Statut', 'Dernier appel', '']}>
+          {terminals.data.map((t) => (
+            <tr key={t.id} className={t.active ? '' : 'opacity-60'}>
+              <td className="px-4 py-3 font-medium">{t.name}</td>
+              <td className="px-4 py-3 font-mono text-xs">{t.keyPrefix}…</td>
+              <td className="px-4 py-3">{t.active ? <Badge tone="success">Active</Badge> : <Badge tone="danger">Révoquée</Badge>}</td>
+              <td className="px-4 py-3 text-muted">{dateTime(t.lastUsedAt)}</td>
+              <td className="px-4 py-3">
+                <div className="flex justify-end gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      confirm(`Régénérer la clé de ${t.name} ? L'ancienne clé cessera de fonctionner.`) &&
+                      run(async () => setCreated(await api<PosTerminalWithKey>('admin', `/api/pos-terminals/${t.id}/rotate-key`, { method: 'POST' })))
+                    }
+                  >
+                    Nouvelle clé
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => run(() => api('admin', `/api/pos-terminals/${t.id}/status`, { method: 'PATCH', body: { active: !t.active } }))}
+                  >
+                    {t.active ? 'Révoquer' : 'Réactiver'}
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
+      <KeyModal created={created} onClose={() => setCreated(null)} />
+    </section>
+  );
+}
+
+/** "référence;libellé;catégorie" lines (header optional), ';' or ',' separated. */
+function parseProducts(text: string, categories: Category[]) {
+  const byLabel = new Map(categories.flatMap((c) => [[c.code.toUpperCase(), c.code], [c.label.toUpperCase(), c.code]]));
+  const rows = text.replace(/^﻿/, '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const products: { sku: string; label: string; category: string }[] = [];
+  const errors: string[] = [];
+  rows.forEach((row, index) => {
+    const cells = row.split(row.includes(';') ? ';' : ',').map((c) => c.trim().replace(/^"|"$/g, ''));
+    if (index === 0 && /r[ée]f|sku/i.test(cells[0])) return;
+    const category = byLabel.get((cells[2] ?? '').toUpperCase());
+    if (!cells[0] || !category) {
+      errors.push(`Ligne ${index + 1} : référence ou catégorie inconnue (${row})`);
+      return;
+    }
+    products.push({ sku: cells[0], label: cells[1] ?? '', category });
+  });
+  return { products, errors };
+}
+
+function Products() {
+  const products = useApi<PosProduct[]>('admin', '/api/pos-products');
+  const categories = useApi<Category[]>('admin', '/api/categories');
+  const [form, setForm] = useState({ sku: '', label: '', category: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
+  const labels = Object.fromEntries((categories.data ?? []).map((c) => [c.code, c.label]));
+
+  const save = async (items: { sku: string; label: string; category: string }[]) => {
+    setError(null);
+    setInfo(null);
+    try {
+      const result = await api<{ saved: number }>('admin', '/api/pos-products', { method: 'PUT', body: items });
+      setInfo(`${result.saved} article(s) enregistré(s).`);
+      await products.reload();
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
+    }
+  };
+
+  const importFile = async (f: File) => {
+    const { products: items, errors } = parseProducts(await f.text(), categories.data ?? []);
+    if (items.length) await save(items);
+    // after saving, which clears the previous messages: rejected lines must stay visible
+    if (errors.length) setError(errors.slice(0, 5).join(' · '));
+    if (file.current) file.current.value = '';
+  };
+
+  return (
+    <section>
+      <h2 className="mb-1 font-display text-xl font-bold">Articles de la caisse</h2>
+      <p className="mb-4 text-sm text-muted">
+        Si la caisse n&apos;envoie pas la catégorie de chaque ligne, cette table indique à quelle catégorie Damascino correspond
+        chaque référence d&apos;article (ex. <code className="font-mono">KEB-AZM</code> → Plats). Import CSV :{' '}
+        <code className="font-mono">référence;libellé;catégorie</code>.
+      </p>
+      {error && <Alert>{error}</Alert>}
+      {info && <Alert tone="success">{info}</Alert>}
+      <Card className="my-4">
+        <form
+          className="grid gap-3 sm:grid-cols-4 sm:items-end"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (await save([form])) setForm({ sku: '', label: '', category: form.category });
+          }}
+        >
+          <Field label="Référence (SKU)" required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+          <Field label="Libellé" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+          <Select label="Catégorie" required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <option value="">Choisir…</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </Select>
+          <div className="flex gap-2">
+            <Button type="submit">Enregistrer</Button>
+            <input ref={file} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])} />
+            <Button type="button" variant="secondary" onClick={() => file.current?.click()}>
+              Importer CSV
+            </Button>
+          </div>
+        </form>
+      </Card>
+      {products.data && products.data.length > 0 && (
+        <Table head={['Référence', 'Libellé', 'Catégorie', '']}>
+          {products.data.map((p) => (
+            <tr key={p.sku}>
+              <td className="px-4 py-3 font-mono">{p.sku}</td>
+              <td className="px-4 py-3">{p.label}</td>
+              <td className="px-4 py-3">{categoryLabel(p.category, labels)}</td>
+              <td className="px-4 py-3 text-right">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      await api('admin', `/api/pos-products/${encodeURIComponent(p.sku)}`, { method: 'DELETE' });
+                      await products.reload();
+                    } catch (e) {
+                      setError(errorMessage(e));
+                    }
+                  }}
+                >
+                  Supprimer
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
+    </section>
+  );
+}
+
+export default function TillsPage() {
+  return (
+    <>
+      <PageHeader
+        title="Intégration caisse"
+        subtitle="Caisses autorisées à valider l'avantage directement depuis le logiciel de caisse, et correspondance des articles."
+        actions={
+          <Link href="/admin/caisses/simulateur" className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">
+            Simulateur de caisse
+          </Link>
+        }
+      />
+      <div className="space-y-10">
+        <Terminals />
+        <Products />
+      </div>
+    </>
+  );
+}

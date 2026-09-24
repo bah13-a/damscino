@@ -10,7 +10,7 @@ import tn.damascino.common.security.Role;
 import tn.damascino.common.security.Secrets;
 import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.domain.EligibilityPolicy;
-import tn.damascino.privilege.domain.RedemptionRepository;
+import tn.damascino.privilege.application.QuotaService;
 import tn.damascino.privilege.domain.RefusalReason;
 import tn.damascino.privilege.projection.BeneficiaryProjection;
 import tn.damascino.privilege.projection.BeneficiaryProjectionRepository;
@@ -29,19 +29,19 @@ public class GenerateQrHandler implements CommandHandler<GenerateQrCommand, Gene
 
     private final BeneficiaryProjectionRepository beneficiaries;
     private final PartnerProjectionRepository partners;
-    private final RedemptionRepository redemptions;
+    private final QuotaService quota;
     private final QrTokenService qrTokens;
     private final Clock clock;
     private final Duration ttl;
     private final Duration refreshInterval;
 
     public GenerateQrHandler(BeneficiaryProjectionRepository beneficiaries, PartnerProjectionRepository partners,
-                             RedemptionRepository redemptions, QrTokenService qrTokens, Clock clock,
+                             QuotaService quota, QrTokenService qrTokens, Clock clock,
                              @Value("${damascino.qr.ttl}") Duration ttl,
                              @Value("${damascino.qr.refresh-interval}") Duration refreshInterval) {
         this.beneficiaries = beneficiaries;
         this.partners = partners;
-        this.redemptions = redemptions;
+        this.quota = quota;
         this.qrTokens = qrTokens;
         this.clock = clock;
         this.ttl = ttl;
@@ -67,7 +67,7 @@ public class GenerateQrHandler implements CommandHandler<GenerateQrCommand, Gene
                 ? null : partners.findById(beneficiary.getPartnerId()).orElse(null);
         LocalDate today = LocalDate.now(clock);
         long used = partner == null ? 0
-                : redemptions.countByBeneficiaryIdAndPeriodKey(beneficiary.getId(), partner.getUsagePeriod().keyOf(today));
+                : quota.used(beneficiary.getId(), partner.getUsagePeriod().keyOf(today));
         RefusalReason refusal = EligibilityPolicy.evaluate(beneficiary, partner, today, used).orElse(null);
         if (refusal != null) {
             throw new ApiException(HttpStatus.CONFLICT, refusal.name(), refusal.message());

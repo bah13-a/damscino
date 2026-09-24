@@ -50,6 +50,10 @@ Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   confirmation sous verrou (deux scans simultanés ne valident jamais deux fois).
 - Règles configurables par partenaire : pourcentage, catégories éligibles / exclues, nombre d'utilisations par jour,
   semaine ou mois (fuseau Africa/Tunis), période de convention.
+- **Intégration caisse** : API `/api/pos/v1` (clé d'API par poste de caisse) pour que le logiciel de caisse applique
+  lui-même la remise sur le bon plat du ticket, avec réservation le temps du ticket, confirmation idempotente,
+  annulation / remboursement, correspondance des articles et simulateur de caisse. Guide pour l'éditeur :
+  [docs/INTEGRATION_CAISSE.md](docs/INTEGRATION_CAISSE.md), spécification [OpenAPI](docs/api-caisse/openapi.yaml).
 - Statistiques (autorisés, comptes activés, utilisateurs actifs, passages, remises en DT) filtrables par partenaire,
   période et bénéficiaire ; journal des passages, des refus et des actions d'administration ; exports Excel et CSV.
 
@@ -107,7 +111,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 ### Tests de bout en bout (Playwright)
 
-36 scénarios sur les trois espaces, contre une stack démarrée (locale ou Render) : connexion et changement de mot
+43 scénarios sur les trois espaces et l'intégration caisse, contre une stack démarrée (locale ou Render) : connexion et changement de mot
 de passe imposé, blocage, droits par rôle, partenaires et règles, catégories, import Excel/CSV et export des accès,
 bénéficiaires, comptes, QR renouvelé toutes les 30 s, session unique, **scan par caméra** (QR injecté dans une caméra
 simulée), refus (code falsifié, expiré, déjà utilisé, bénéficiaire ou partenaire inactif), quota hebdomadaire,

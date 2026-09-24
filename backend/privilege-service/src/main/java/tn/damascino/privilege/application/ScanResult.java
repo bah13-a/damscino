@@ -19,7 +19,9 @@ public record ScanResult(
         UUID redemptionId,
         BigDecimal dishPrice,
         BigDecimal discountAmount,
-        Instant validatedAt) {
+        Instant validatedAt,
+        /* short code to write on the ticket when the till is not connected (remise assistée) */
+        String validationCode) {
 
     public enum Status {
         VALID,

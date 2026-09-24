@@ -35,7 +35,10 @@ public class UsageLogHandler implements QueryHandler<UsageLogQuery, PageResponse
                 rs.getObject("beneficiary_id", UUID.class), rs.getString("beneficiary_name"),
                 rs.getObject("partner_id", UUID.class), rs.getString("partner_name"), rs.getString("staff_name"),
                 rs.getBigDecimal("dish_price"), rs.getBigDecimal("discount_percent"),
-                rs.getBigDecimal("discount_amount")));
+                rs.getBigDecimal("discount_amount"), rs.getString("channel"), rs.getString("pos_terminal"),
+                rs.getString("ticket_id"), rs.getString("dish_label"), rs.getString("validation_code"),
+                rs.getTimestamp("cancelled_at") == null ? null : rs.getTimestamp("cancelled_at").toInstant(),
+                rs.getString("cancel_reason")));
         int effectiveSize = size > 0 ? size : (int) Math.max(total, 1);
         return new PageResponse<>(rows, size > 0 ? Math.max(query.page(), 0) : 0, effectiveSize, total,
                 (int) Math.ceil(total / (double) effectiveSize));

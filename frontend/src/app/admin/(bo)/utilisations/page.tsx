@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { defaultFilters, PeriodFilter, type Filters } from '@/components/admin/PeriodFilter';
 import { ExportButtons } from '@/components/ExportButtons';
-import { Alert, Empty, PageHeader, Pagination, Table } from '@/components/ui';
+import { Alert, Badge, Empty, PageHeader, Pagination, Table } from '@/components/ui';
 import { dateTime, dt, percent } from '@/lib/format';
 import type { Page, Partner, RejectionRow, UsageRow } from '@/lib/types';
 import { query, useApi } from '@/lib/useApi';
@@ -19,6 +19,8 @@ const REASONS: Record<string, string> = {
   CONVENTION_NOT_STARTED: 'Convention non commencée',
   CONVENTION_EXPIRED: 'Convention expirée',
   QUOTA_REACHED: 'Déjà utilisé sur la période',
+  NO_ELIGIBLE_ITEM: 'Aucun plat éligible sur le ticket',
+  TICKET_ALREADY_DISCOUNTED: 'Ticket déjà remisé',
 };
 
 export default function UsagesPage() {
@@ -73,16 +75,27 @@ export default function UsagesPage() {
           {usages.data && usages.data.items.length > 0 && (
             <>
               <p className="mb-2 text-sm text-muted">{usages.data.totalItems} passage(s)</p>
-              <Table head={['Date et heure', 'Bénéficiaire', 'Partenaire', 'Personnel', 'Prix du plat', 'Remise']}>
+              <Table head={['Date et heure', 'Bénéficiaire', 'Partenaire', 'Validé par', 'Plat', 'Remise', 'Ticket']}>
                 {usages.data.items.map((u) => (
-                  <tr key={u.id}>
+                  <tr key={u.id} className={u.cancelledAt ? 'opacity-60' : ''}>
                     <td className="px-4 py-3 tabular-nums">{dateTime(u.validatedAt)}</td>
                     <td className="px-4 py-3 font-medium">{u.beneficiaryName}</td>
                     <td className="px-4 py-3">{u.partnerName}</td>
-                    <td className="px-4 py-3">{u.staffName}</td>
-                    <td className="px-4 py-3 tabular-nums">{dt(u.dishPrice)}</td>
+                    <td className="px-4 py-3">
+                      {u.staffName}
+                      <div className="mt-0.5">{u.channel === 'POS' ? <Badge tone="brand">Caisse</Badge> : <Badge>Scanner</Badge>}</div>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {u.dishLabel && <div>{u.dishLabel}</div>}
+                      {dt(u.dishPrice)}
+                    </td>
                     <td className="px-4 py-3 tabular-nums">
                       {dt(u.discountAmount)} <span className="text-xs text-muted">({percent(u.discountPercent)})</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.ticketId ?? '—'}
+                      {u.validationCode && <div className="font-mono text-xs text-muted">code {u.validationCode}</div>}
+                      {u.cancelledAt && <div className="mt-0.5"><Badge tone="danger">Annulé</Badge></div>}
                     </td>
                   </tr>
                 ))}

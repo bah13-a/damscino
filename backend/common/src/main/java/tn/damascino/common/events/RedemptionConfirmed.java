@@ -16,7 +16,13 @@ public record RedemptionConfirmed(
         BigDecimal dishPrice,
         BigDecimal discountPercent,
         BigDecimal discountAmount,
-        Instant validatedAt) implements DomainEvent {
+        Instant validatedAt,
+        /* SCANNER (tablette / téléphone du personnel) or POS (logiciel de caisse) */
+        String channel,
+        String posTerminalName,
+        String ticketId,
+        String dishLabel,
+        String validationCode) implements DomainEvent {
 
     @Override
     public String eventType() {

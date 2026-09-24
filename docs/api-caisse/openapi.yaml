@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: Damascino Privilèges – API caisse
+  version: "1.0"
+  description: |
+    API appelée par le logiciel de caisse de Damascino pour appliquer l'avantage « Damascino Privilèges »
+    (−20 % sur un plat éligible) directement sur le ticket.
+
+    Parcours : le caissier scanne le QR code du client → `preview` (la caisse ajoute la ligne de remise) →
+    paiement → `confirm`. Ticket annulé ou remboursé → `cancel`.
+
+    Authentification : chaque poste de caisse a sa propre clé, créée dans Administration → Caisses, envoyée dans
+    l'en-tête `X-Api-Key`. Toutes les réponses métier (même un refus) sont en HTTP 200 avec un champ `status` ;
+    les codes 4xx signalent une requête invalide ou une clé refusée.
+servers:
+  - url: https://damascino-privileges.onrender.com
+    description: Environnement de test
+security:
+  - ApiKey: []
+paths:
+  /api/pos/v1/ping:
+    get:
+      summary: Tester la clé et l'horloge
+      responses:
+        "200":
+          description: Clé valide
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  terminal: { type: string, example: "Caisse 1 – Salle" }
+                  serverTime: { type: string, format: date-time }
+                  apiVersion: { type: string, example: v1 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/pos/v1/preview:
+    post:
+      summary: Aperçu de la remise pour un ticket ouvert (réserve l'avantage)
+      description: |
+        Vérifie le QR code (signature, expiration, usage unique, compte, partenaire, convention, quota) et choisit la
+        ligne remisée : un plat d'une catégorie éligible (le plus cher, ou `preferredLineId` s'il est éligible).
+        L'avantage est **réservé** pour ce ticket pendant 15 minutes : le QR code du client (valable 40 s) peut expirer
+        pendant la commande. Rappeler `preview` avec le même QR et le même `ticketId` après une modification du ticket
+        met à jour la réservation. Un seul avantage Damascino par ticket.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PreviewRequest" }
+            example:
+              code: "DP1.eyJiIjoiNTIz…"
+              ticketId: "T-2026-000123"
+              cashier: "Sami"
+              lines:
+                - { lineId: "1", sku: "EAU-50", label: "Eau 0,5 L", category: "BOISSONS", unitPrice: 4.000, quantity: 1 }
+                - { lineId: "2", sku: "KEB-AZM", label: "Azmari Kebab", category: "PLATS", unitPrice: 40.000, quantity: 1 }
+                - { lineId: "3", sku: "DES-KUN", label: "Kunafa", category: "DESSERTS", unitPrice: 15.000, quantity: 1 }
+      responses:
+        "200":
+          description: VALID (appliquer la remise) ou REFUSED (afficher le message)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PreviewResponse" }
+              examples:
+                valid:
+                  value:
+                    status: VALID
+                    reservationId: "3f0c2a4e-8d6b-4a7e-9d51-0b2f5a8c1e77"
+                    reservedUntil: "2026-09-24T11:45:00Z"
+                    beneficiary: { name: "Amira Ben Salah", partner: "Mall of Sfax" }
+                    discount: { lineId: "2", label: "Azmari Kebab", category: "PLATS", unitPrice: 40.000, percent: 20, amount: 8.000 }
+                    totalBefore: 59.000
+                    totalAfter: 51.000
+                refused:
+                  value:
+                    status: REFUSED
+                    reason: QUOTA_REACHED
+                    message: "Avantage déjà utilisé pour cette période"
+                    totalBefore: 59.000
+                    totalAfter: 59.000
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/pos/v1/confirm:
+    post:
+      summary: Ticket payé – enregistre le passage (idempotent)
+      description: |
+        À appeler à l'encaissement. Rejouer la même confirmation (coupure réseau) renvoie la même réponse sans créer
+        de second passage. Le `validationCode` peut être imprimé sur le ticket.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmRequest" }
+      responses:
+        "200":
+          description: CONFIRMED ou REFUSED (réservation expirée ou inconnue, compte désactivé entre-temps…)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConfirmResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/pos/v1/cancel:
+    post:
+      summary: Ticket annulé ou remboursé (idempotent)
+      description: |
+        Libère la réservation d'un ticket non payé, ou annule le passage d'un ticket payé puis remboursé : il ne compte
+        plus dans le quota ni dans les statistiques, et le client peut de nouveau utiliser son avantage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CancelRequest" }
+      responses:
+        "200":
+          description: CANCELLED ou NOTHING_TO_CANCEL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CancelResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  responses:
+    Unauthorized:
+      description: Clé absente, invalide ou révoquée
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: Requête invalide (ticket sans ligne, n° de ticket manquant…)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    TicketLine:
+      type: object
+      required: [lineId, label, unitPrice]
+      properties:
+        lineId: { type: string, description: "Identifiant de la ligne dans le ticket" }
+        sku: { type: string, nullable: true, description: "Référence de l'article (utilisée avec la table des articles)" }
+        label: { type: string }
+        category:
+          type: string
+          nullable: true
+          description: "Catégorie Damascino (PLATS, BOISSONS, DESSERTS, ENTREES…). Facultative si la référence est déclarée dans Administration → Caisses."
+        unitPrice: { type: number, description: "Prix unitaire TTC en DT", example: 40.000 }
+        quantity: { type: number, default: 1 }
+    PreviewRequest:
+      type: object
+      required: [code, ticketId, lines]
+      properties:
+        code: { type: string, description: "Contenu du QR code scanné (DP1.…)" }
+        ticketId: { type: string, maxLength: 80, description: "Identifiant unique du ticket pour ce poste de caisse" }
+        cashier: { type: string, nullable: true, description: "Nom du caissier (journal des passages)" }
+        preferredLineId: { type: string, nullable: true, description: "Ligne à remiser si le caissier la choisit" }
+        lines:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/TicketLine" }
+    Beneficiary:
+      type: object
+      properties:
+        name: { type: string }
+        partner: { type: string }
+    Discount:
+      type: object
+      properties:
+        lineId: { type: string }
+        label: { type: string }
+        category: { type: string, nullable: true }
+        unitPrice: { type: number }
+        percent: { type: number }
+        amount: { type: number, description: "Montant de la remise en DT (arrondi au millime)" }
+    PreviewResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [VALID, REFUSED] }
+        reason: { $ref: "#/components/schemas/Reason" }
+        message: { type: string, description: "Message à afficher au caissier" }
+        reservationId: { type: string, format: uuid, nullable: true }
+        reservedUntil: { type: string, format: date-time, nullable: true }
+        beneficiary: { $ref: "#/components/schemas/Beneficiary" }
+        discount: { $ref: "#/components/schemas/Discount" }
+        totalBefore: { type: number }
+        totalAfter: { type: number }
+    ConfirmRequest:
+      type: object
+      required: [reservationId, ticketId]
+      properties:
+        reservationId: { type: string, format: uuid }
+        ticketId: { type: string }
+        paidAt: { type: string, format: date-time, nullable: true }
+    ConfirmResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [CONFIRMED, REFUSED] }
+        reason: { $ref: "#/components/schemas/Reason" }
+        message: { type: string }
+        redemptionId: { type: string, format: uuid, nullable: true }
+        ticketId: { type: string }
+        beneficiary: { $ref: "#/components/schemas/Beneficiary" }
+        discount: { $ref: "#/components/schemas/Discount" }
+        validationCode: { type: string, nullable: true, example: "428249" }
+        validatedAt: { type: string, format: date-time, nullable: true }
+    CancelRequest:
+      type: object
+      required: [ticketId]
+      properties:
+        ticketId: { type: string }
+        reason: { type: string, nullable: true }
+    CancelResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [CANCELLED, NOTHING_TO_CANCEL] }
+        ticketId: { type: string }
+        redemptionId: { type: string, format: uuid, nullable: true }
+    Reason:
+      type: string
+      nullable: true
+      enum:
+        - INVALID_QR
+        - QR_EXPIRED
+        - QR_ALREADY_USED
+        - SESSION_REPLACED
+        - UNKNOWN_ACCOUNT
+        - BENEFICIARY_INACTIVE
+        - PARTNER_INACTIVE
+        - CONVENTION_NOT_STARTED
+        - CONVENTION_EXPIRED
+        - QUOTA_REACHED
+        - NO_ELIGIBLE_ITEM
+        - TICKET_ALREADY_DISCOUNTED
+        - RESERVATION_NOT_FOUND
+        - RESERVATION_EXPIRED
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }

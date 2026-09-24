@@ -12,6 +12,7 @@ public record UsageLogQuery(ReportFilter filter, int page, int size) implements 
 
     public record Row(UUID id, Instant validatedAt, UUID beneficiaryId, String beneficiaryName, UUID partnerId,
                       String partnerName, String staffName, BigDecimal dishPrice, BigDecimal discountPercent,
-                      BigDecimal discountAmount) {
+                      BigDecimal discountAmount, String channel, String posTerminal, String ticketId,
+                      String dishLabel, String validationCode, Instant cancelledAt, String cancelReason) {
     }
 }

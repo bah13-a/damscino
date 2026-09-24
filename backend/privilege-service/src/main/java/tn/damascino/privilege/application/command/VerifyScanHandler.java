@@ -29,6 +29,6 @@ public class VerifyScanHandler implements CommandHandler<VerifyScanCommand, Scan
         PartnerProjection p = evaluation.partner();
         return new ScanResult(ScanResult.Status.VALID, null, "Avantage valide", b.fullName(), p.getName(),
                 p.getDiscountPercent(), p.getEligibleCategories(), p.getExcludedCategories(),
-                (int) (p.getUsagesPerPeriod() - evaluation.usedInPeriod()), null, null, null, null);
+                (int) (p.getUsagesPerPeriod() - evaluation.usedInPeriod()), null, null, null, null, null);
     }
 }

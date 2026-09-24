@@ -35,17 +35,19 @@ public class ReportingController {
 
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
             .withZone(Zones.TUNIS);
-    private static final Map<String, String> REASONS = Map.of(
-            "INVALID_QR", "QR invalide",
-            "QR_EXPIRED", "QR expiré",
-            "QR_ALREADY_USED", "QR déjà utilisé",
-            "SESSION_REPLACED", "Session remplacée",
-            "UNKNOWN_ACCOUNT", "Compte inconnu",
-            "BENEFICIARY_INACTIVE", "Bénéficiaire désactivé",
-            "PARTNER_INACTIVE", "Partenaire inactif",
-            "CONVENTION_NOT_STARTED", "Convention non commencée",
-            "CONVENTION_EXPIRED", "Convention expirée",
-            "QUOTA_REACHED", "Déjà utilisé sur la période");
+    private static final Map<String, String> REASONS = Map.ofEntries(
+            Map.entry("INVALID_QR", "QR invalide"),
+            Map.entry("QR_EXPIRED", "QR expiré"),
+            Map.entry("QR_ALREADY_USED", "QR déjà utilisé"),
+            Map.entry("SESSION_REPLACED", "Session remplacée"),
+            Map.entry("UNKNOWN_ACCOUNT", "Compte inconnu"),
+            Map.entry("BENEFICIARY_INACTIVE", "Bénéficiaire désactivé"),
+            Map.entry("PARTNER_INACTIVE", "Partenaire inactif"),
+            Map.entry("CONVENTION_NOT_STARTED", "Convention non commencée"),
+            Map.entry("CONVENTION_EXPIRED", "Convention expirée"),
+            Map.entry("QUOTA_REACHED", "Déjà utilisé sur la période"),
+            Map.entry("NO_ELIGIBLE_ITEM", "Aucun plat éligible sur le ticket"),
+            Map.entry("TICKET_ALREADY_DISCOUNTED", "Ticket déjà remisé"));
 
     private final QueryBus queries;
 
@@ -73,10 +75,13 @@ public class ReportingController {
         List<List<Object>> rows = new ArrayList<>();
         for (UsageLogQuery.Row r : page.items()) {
             rows.add(Arrays.asList(dateTime(r.validatedAt()), r.beneficiaryName(), r.partnerName(), r.staffName(),
-                    r.dishPrice(), r.discountPercent(), r.discountAmount()));
+                    r.dishPrice(), r.discountPercent(), r.discountAmount(),
+                    "POS".equals(r.channel()) ? "Caisse" : "Scanner", r.ticketId(), r.dishLabel(), r.validationCode(),
+                    r.cancelledAt() == null ? "" : "Annulé le " + dateTime(r.cancelledAt()) + " (" + r.cancelReason() + ")"));
         }
         return TabularExport.response("utilisations", format, List.of("Date et heure", "Bénéficiaire", "Partenaire",
-                "Membre du personnel", "Prix du plat (DT)", "Remise %", "Montant remisé (DT)"), rows);
+                "Membre du personnel", "Prix du plat (DT)", "Remise %", "Montant remisé (DT)", "Canal", "N° de ticket",
+                "Plat remisé", "Code de validation", "Annulation"), rows);
     }
 
     @GetMapping("/statistics")
@@ -133,7 +138,7 @@ public class ReportingController {
         List<List<Object>> rows = new ArrayList<>();
         for (RejectionLogQuery.Row r : page.items()) {
             rows.add(Arrays.asList(dateTime(r.occurredAt()), r.beneficiaryName(), r.partnerName(), r.staffName(),
-                    REASONS.getOrDefault(r.reason(), r.reason()), "CONFIRM".equals(r.stage()) ? "Confirmation" : "Contrôle"));
+                    REASONS.getOrDefault(r.reason(), r.reason()), "CONFIRM".equals(r.stage()) ? "Confirmation" : "POS".equals(r.stage()) ? "Caisse" : "Contrôle"));
         }
         return TabularExport.response("refus", format, List.of("Date et heure", "Bénéficiaire", "Partenaire",
                 "Membre du personnel", "Motif", "Étape"), rows);

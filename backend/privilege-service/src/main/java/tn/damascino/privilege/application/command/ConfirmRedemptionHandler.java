@@ -59,11 +59,13 @@ public class ConfirmRedemptionHandler implements CommandHandler<ConfirmRedemptio
         events.publish(new RedemptionConfirmed(redemption.getId(), b.getId(), b.fullName(), p.getId(), p.getName(),
                 command.staff().accountId(), command.staff().displayName(), redemption.getPeriodKey(),
                 redemption.getDishPrice(), redemption.getDiscountPercent(), redemption.getDiscountAmount(),
-                redemption.getValidatedAt()));
+                redemption.getValidatedAt(), redemption.getChannel(), null, null, null,
+                redemption.getValidationCode()));
 
         return new ScanResult(ScanResult.Status.CONFIRMED, null, "Passage validé", b.fullName(), p.getName(),
                 p.getDiscountPercent(), p.getEligibleCategories(), p.getExcludedCategories(),
                 (int) (p.getUsagesPerPeriod() - evaluation.usedInPeriod() - 1), redemption.getId(),
-                redemption.getDishPrice(), redemption.getDiscountAmount(), redemption.getValidatedAt());
+                redemption.getDishPrice(), redemption.getDiscountAmount(), redemption.getValidatedAt(),
+                redemption.getValidationCode());
     }
 }

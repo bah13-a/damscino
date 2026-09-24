@@ -11,6 +11,7 @@ import tn.damascino.common.events.BeneficiaryChanged;
 import tn.damascino.common.events.EventEnvelope;
 import tn.damascino.common.events.EventTypes;
 import tn.damascino.common.events.PartnerChanged;
+import tn.damascino.common.events.RedemptionCancelled;
 import tn.damascino.common.events.RedemptionConfirmed;
 import tn.damascino.common.events.RedemptionRejected;
 import tn.damascino.common.messaging.EventReader;
@@ -41,6 +42,7 @@ public class ReportingProjector {
             case EventTypes.BENEFICIARY_CHANGED -> beneficiary(reader.payload(envelope, BeneficiaryChanged.class));
             case EventTypes.ACCOUNT_ACTIVATED -> activated(reader.payload(envelope, AccountActivated.class));
             case EventTypes.REDEMPTION_CONFIRMED -> usage(reader.payload(envelope, RedemptionConfirmed.class));
+            case EventTypes.REDEMPTION_CANCELLED -> cancelled(reader.payload(envelope, RedemptionCancelled.class));
             case EventTypes.REDEMPTION_REJECTED -> rejection(envelope, reader.payload(envelope, RedemptionRejected.class));
             case EventTypes.AUDIT_RECORDED -> audit(envelope, reader.payload(envelope, AuditRecorded.class));
             default -> {
@@ -88,9 +90,10 @@ public class ReportingProjector {
     private void usage(RedemptionConfirmed e) {
         jdbc.update("""
                 insert into rpt_usage (id, beneficiary_id, beneficiary_name, partner_id, partner_name, staff_account_id,
-                    staff_name, validated_at, local_date, dish_price, discount_percent, discount_amount)
+                    staff_name, validated_at, local_date, dish_price, discount_percent, discount_amount, channel,
+                    pos_terminal, ticket_id, dish_label, validation_code)
                 values (:id, :beneficiary, :beneficiaryName, :partner, :partnerName, :staff, :staffName, :at, :day,
-                    :price, :percent, :amount)
+                    :price, :percent, :amount, :channel, :pos, :ticket, :dish, :code)
                 on conflict (id) do nothing
                 """, new MapSqlParameterSource()
                 .addValue("id", e.redemptionId())
@@ -99,7 +102,16 @@ public class ReportingProjector {
                 .addValue("staff", e.staffAccountId()).addValue("staffName", e.staffName())
                 .addValue("at", ts(e.validatedAt())).addValue("day", localDate(e.validatedAt()))
                 .addValue("price", e.dishPrice()).addValue("percent", e.discountPercent())
-                .addValue("amount", e.discountAmount()));
+                .addValue("amount", e.discountAmount())
+                .addValue("channel", e.channel() == null ? "SCANNER" : e.channel())
+                .addValue("pos", e.posTerminalName()).addValue("ticket", e.ticketId())
+                .addValue("dish", e.dishLabel()).addValue("code", e.validationCode()));
+    }
+
+    private void cancelled(RedemptionCancelled e) {
+        jdbc.update("update rpt_usage set cancelled_at = :at, cancel_reason = :reason where id = :id",
+                new MapSqlParameterSource().addValue("id", e.redemptionId()).addValue("at", ts(e.cancelledAt()))
+                        .addValue("reason", e.reason()));
     }
 
     private void rejection(EventEnvelope envelope, RedemptionRejected e) {

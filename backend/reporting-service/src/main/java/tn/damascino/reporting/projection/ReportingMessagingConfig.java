@@ -19,6 +19,7 @@ public class ReportingMessagingConfig {
                 EventTypes.ACCOUNT_ACTIVATED,
                 EventTypes.REDEMPTION_CONFIRMED,
                 EventTypes.REDEMPTION_REJECTED,
+                EventTypes.REDEMPTION_CANCELLED,
                 EventTypes.AUDIT_RECORDED);
     }
 }

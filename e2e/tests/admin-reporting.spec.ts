@@ -50,8 +50,10 @@ test.describe('Administration · statistiques, utilisations, journal et exports'
     await expect(usage).toContainText('8 DT');
     const [usagesCsv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV' }).click()]);
     const csv = readText(await usagesCsv.path()).split(/\r?\n/);
-    expect(csv[0]).toBe('Date et heure;Bénéficiaire;Partenaire;Membre du personnel;Prix du plat (DT);Remise %;Montant remisé (DT)');
-    expect(csv[1]).toContain(`;${b.fullName};${b.partner.name};${staff.displayName};40.000;20.00;8.000`);
+    expect(csv[0]).toBe(
+      'Date et heure;Bénéficiaire;Partenaire;Membre du personnel;Prix du plat (DT);Remise %;Montant remisé (DT);Canal;N° de ticket;Plat remisé;Code de validation;Annulation',
+    );
+    expect(csv[1]).toMatch(new RegExp(`;${b.fullName};${b.partner.name};${staff.displayName};40\\.000;20\\.00;8\\.000;Scanner;;;\\d{6};$`));
 
     await page.getByRole('button', { name: 'Refus' }).click();
     const refusal = page.getByRole('row', { name: new RegExp(b.fullName) });

@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/beneficiaires', label: 'Bénéficiaires' },
   { href: '/admin/utilisations', label: 'Utilisations' },
   { href: '/admin/categories', label: 'Catégories' },
+  { href: '/admin/caisses', label: 'Caisses' },
   { href: '/admin/comptes', label: 'Comptes' },
   { href: '/admin/journal', label: 'Journal' },
 ];

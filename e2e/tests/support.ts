@@ -177,3 +177,33 @@ export async function beneficiaryLogin(page: Page, phone: string, password: stri
   await uiLogin(page, 'beneficiary', phone, password);
   await expect(page).toHaveURL(/\/espace$/);
 }
+
+/** Till registered in the administration, with its API key. */
+export async function createTill(api: Api, adminToken: string) {
+  const created = await api.call<{ terminal: { id: string; name: string }; apiKey: string }>('POST', '/api/pos-terminals', adminToken, {
+    name: `Caisse E2E ${uid()}`,
+  });
+  return { ...created.terminal, apiKey: created.apiKey };
+}
+
+/** Calls the till API with an API key (the way a till software does). */
+export async function tillCall<T = Record<string, any>>(request: APIRequestContext, apiKey: string, endpoint: string, body?: unknown) {
+  const response = await request.fetch(`/api/pos/v1/${endpoint}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'X-Api-Key': apiKey, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    data: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return { status: response.status(), body: (await response.json().catch(() => ({}))) as T };
+}
+
+/** The ticket of the specification: Eau 4 DT + Azmari Kebab 40 DT + Kunafa 15 DT. */
+export const specTicket = (code: string, ticketId: string) => ({
+  code,
+  ticketId,
+  cashier: 'Sami',
+  lines: [
+    { lineId: '1', sku: 'EAU-50', label: 'Eau', category: 'BOISSONS', unitPrice: 4, quantity: 1 },
+    { lineId: '2', sku: 'KEB-AZM', label: 'Azmari Kebab', category: 'PLATS', unitPrice: 40, quantity: 1 },
+    { lineId: '3', sku: 'DES-KUN', label: 'Kunafa', category: 'DESSERTS', unitPrice: 15, quantity: 1 },
+  ],
+});

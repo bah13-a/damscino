@@ -25,6 +25,12 @@ const ACTIONS: Record<string, string> = {
   ACCOUNT_UPDATED: 'Compte modifié',
   ACCOUNT_SECRET_RESET: 'Mot de passe / PIN réinitialisé',
   SNAPSHOTS_REPUBLISHED: 'Resynchronisation',
+  POS_TERMINAL_CREATED: 'Caisse créée',
+  POS_KEY_ROTATED: 'Clé de caisse régénérée',
+  POS_TERMINAL_ACTIVATED: 'Caisse activée',
+  POS_TERMINAL_DEACTIVATED: 'Caisse désactivée',
+  POS_PRODUCTS_SAVED: 'Articles de caisse enregistrés',
+  POS_PRODUCT_DELETED: 'Article de caisse supprimé',
 };
 
 export default function AuditPage() {

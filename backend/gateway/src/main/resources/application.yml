@@ -32,7 +32,7 @@ spring:
         - id: privilege-service
           uri: ${PRIVILEGE_URL:http://localhost:8083}
           predicates:
-            - Path=/api/privileges/**
+            - Path=/api/privileges/**,/api/pos/**,/api/pos-terminals/**,/api/pos-products/**
         - id: reporting-service
           uri: ${REPORTING_URL:http://localhost:8084}
           predicates:

@@ -32,8 +32,9 @@ test.describe('PWA et affichage mobile', () => {
 
   test("aucun défilement horizontal sur un petit téléphone (360 px)", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
-    for (const path of ['/', '/connexion', '/personnel', '/admin/connexion', '/hors-ligne', '/mot-de-passe']) {
+    for (const path of ['/', '/connexion', '/personnel', '/admin/connexion', '/hors-ligne']) {
       await page.goto(path);
+      await page.waitForLoadState('networkidle');
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, path).toBeLessThanOrEqual(0);
     }

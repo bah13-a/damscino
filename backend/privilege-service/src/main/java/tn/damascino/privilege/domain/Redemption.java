@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -48,6 +49,33 @@ public class Redemption {
     @Column(name = "validated_at", nullable = false)
     private Instant validatedAt;
 
+    /** SCANNER or POS. */
+    @Column(nullable = false)
+    private String channel;
+
+    @Column(name = "pos_terminal_id")
+    private UUID posTerminalId;
+
+    @Column(name = "ticket_id")
+    private String ticketId;
+
+    @Column(name = "dish_label")
+    private String dishLabel;
+
+    /** Short code shown to the cashier, written on the ticket when the till is not connected (remise assistée). */
+    @Column(name = "validation_code")
+    private String validationCode;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
+    public static final String CHANNEL_SCANNER = "SCANNER";
+    public static final String CHANNEL_POS = "POS";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     protected Redemption() {
     }
 
@@ -64,6 +92,31 @@ public class Redemption {
         this.discountPercent = discountPercent;
         this.discountAmount = discountOf(dishPrice, discountPercent);
         this.validatedAt = validatedAt;
+        this.channel = CHANNEL_SCANNER;
+        this.validationCode = "%06d".formatted(RANDOM.nextInt(1_000_000));
+    }
+
+    /** Passage validated by a connected till: the discounted line comes from the ticket. */
+    public static Redemption fromTill(UUID beneficiaryId, UUID partnerId, UUID terminalId, String terminalLabel,
+                                      String periodKey, String qrNonce, String ticketId, String dishLabel,
+                                      BigDecimal dishPrice, BigDecimal discountPercent, Instant validatedAt) {
+        Redemption redemption = new Redemption(beneficiaryId, partnerId, terminalId, terminalLabel, periodKey, qrNonce,
+                dishPrice, discountPercent, validatedAt);
+        redemption.channel = CHANNEL_POS;
+        redemption.posTerminalId = terminalId;
+        redemption.ticketId = ticketId;
+        redemption.dishLabel = dishLabel;
+        return redemption;
+    }
+
+    /** Ticket cancelled or refunded: the passage no longer counts in the quota nor in the statistics. */
+    public boolean cancel(Instant when, String reason) {
+        if (cancelledAt != null) {
+            return false;
+        }
+        cancelledAt = when;
+        cancelReason = reason;
+        return true;
     }
 
     /** Discount in dinars, rounded to the millime (e.g. 20 % of 40 DT = 8.000 DT). */
@@ -112,5 +165,33 @@ public class Redemption {
 
     public Instant getValidatedAt() {
         return validatedAt;
+    }
+
+    public String getChannel() {
+        return channel;
+    }
+
+    public UUID getPosTerminalId() {
+        return posTerminalId;
+    }
+
+    public String getTicketId() {
+        return ticketId;
+    }
+
+    public String getDishLabel() {
+        return dishLabel;
+    }
+
+    public String getValidationCode() {
+        return validationCode;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
     }
 }
