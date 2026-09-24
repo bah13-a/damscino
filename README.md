@@ -10,6 +10,12 @@ les 30 secondes**.
 | Personnel | `/personnel` → `/personnel/scanner` | Serveurs / caissiers (identifiant + code PIN) |
 | Administration | `/admin/connexion` → `/admin` | Équipe Damascino |
 
+## Manuel d'utilisation
+
+[docs/manuel/MANUEL_UTILISATION.md](docs/manuel/MANUEL_UTILISATION.md) : guide pas à pas illustré pour l'administrateur,
+le personnel de caisse et les bénéficiaires. Captures régénérables sur une base vierge :
+`cd e2e && npx playwright test -c playwright.manual.config.ts`.
+
 ## Architecture
 
 Microservices **Spring Boot 3 / Java 21** organisés en **CQRS** et communiquant par **événements** (RabbitMQ,
