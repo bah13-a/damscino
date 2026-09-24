@@ -1,22 +1,11 @@
-import Link from 'next/link';
-import { Suspense } from 'react';
-import { AuthShell } from '@/components/AuthShell';
-import { LoginForm } from '@/components/LoginForm';
+import { AppLanding } from '@/components/AppLanding';
 
-export default function StaffLoginPage() {
+export default function StaffAccessPage() {
   return (
-    <AuthShell
+    <AppLanding
+      audience="staff"
       title="Espace personnel"
-      subtitle="Connexion individuelle serveur / caissier : chaque validation est tracée à votre nom."
-      footer={
-        <Link href="/" className="underline">
-          Retour
-        </Link>
-      }
-    >
-      <Suspense>
-        <LoginForm space="staff" />
-      </Suspense>
-    </AuthShell>
+      intro="Le scanner des QR codes Damascino Privilèges fonctionne dans l’application mobile, sur la tablette ou le téléphone de caisse."
+    />
   );
 }

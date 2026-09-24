@@ -1,0 +1,32 @@
+import { storage } from './storage';
+
+const SERVER_KEY = 'dp.server';
+const BUILT_IN = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
+
+/** Test builds may point the app to another server (a Codespace, a demo); production builds never. */
+export const SERVER_CHANGE_ALLOWED = process.env.EXPO_PUBLIC_ALLOW_SERVER_CHANGE === '1' || !BUILT_IN;
+
+let current = BUILT_IN;
+
+export async function loadServer(): Promise<string> {
+  if (SERVER_CHANGE_ALLOWED) {
+    const saved = await storage.get(SERVER_KEY);
+    if (saved) current = saved;
+  }
+  return current;
+}
+
+export function server(): string {
+  return current;
+}
+
+export function normalizeServer(value: string): string {
+  let url = value.trim().replace(/\/+$/, '');
+  if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
+  return url;
+}
+
+export async function saveServer(value: string): Promise<void> {
+  current = normalizeServer(value);
+  await storage.set(SERVER_KEY, current);
+}

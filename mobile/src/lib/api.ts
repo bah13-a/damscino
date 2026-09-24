@@ -1,0 +1,123 @@
+import Constants from 'expo-constants';
+import { server } from './config';
+import { clearSession, getSession, saveSession } from './session';
+import { SPACE_ROLE, type AuthResult, type Space } from './types';
+
+/** Sent with every call: the API only lets beneficiaries and staff sign in from the app. */
+export const CLIENT_HEADER = { 'X-Client-App': `damascino-mobile/${Constants.expoConfig?.version ?? '1'}` };
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+    public fields: Record<string, string> = {},
+  ) {
+    super(message);
+  }
+}
+
+/** Why the session ended, shown on the login screen. */
+export type ExpiryReason = 'expired' | 'replaced';
+let expiryHandler: ((reason: ExpiryReason) => void) | null = null;
+export function onSessionExpired(handler: (reason: ExpiryReason) => void) {
+  expiryHandler = handler;
+}
+
+async function parseError(response: Response): Promise<ApiError> {
+  try {
+    const data = await response.json();
+    return new ApiError(response.status, data.code ?? 'ERROR', data.message ?? 'Erreur', data.fields ?? {});
+  } catch {
+    if (response.status >= 500) {
+      return new ApiError(response.status, 'UNAVAILABLE', 'Service en cours de démarrage, réessayez dans un instant.');
+    }
+    return new ApiError(response.status, 'ERROR', `Erreur ${response.status}`);
+  }
+}
+
+function url(path: string) {
+  return `${server()}${path}`;
+}
+
+let refreshing: Promise<boolean> | null = null;
+
+/** Rotates the refresh token once for all concurrent requests. */
+function refresh(): Promise<boolean> {
+  if (refreshing) return refreshing;
+  refreshing = (async () => {
+    const session = getSession();
+    if (!session?.refreshToken) return false;
+    const response = await fetch(url('/api/auth/refresh'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...CLIENT_HEADER },
+      body: JSON.stringify({ refreshToken: session.refreshToken }),
+    });
+    if (!response.ok) return false;
+    await saveSession(session.space, (await response.json()) as AuthResult);
+    return true;
+  })()
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+async function expire(reason: ExpiryReason) {
+  await clearSession();
+  expiryHandler?.(reason);
+}
+
+async function send(path: string, method: string, body: unknown, authenticated: boolean, retry: boolean): Promise<Response> {
+  const session = authenticated ? getSession() : null;
+  const headers: Record<string, string> = { ...CLIENT_HEADER };
+  if (session) headers.Authorization = `Bearer ${session.accessToken}`;
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const response = await fetch(url(path), { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (response.status === 401 && session && retry) {
+    const error = await parseError(response.clone());
+    if (error.code === 'SESSION_REPLACED') {
+      await expire('replaced');
+      throw error;
+    }
+    if (await refresh()) return send(path, method, body, authenticated, false);
+    await expire('expired');
+  }
+  return response;
+}
+
+export async function api<T>(path: string, options: { method?: string; body?: unknown; anonymous?: boolean } = {}): Promise<T> {
+  const response = await send(path, options.method ?? 'GET', options.body, !options.anonymous, true);
+  if (!response.ok) throw await parseError(response);
+  if (response.status === 204) return undefined as T;
+  const type = response.headers.get('content-type') ?? '';
+  return (type.includes('json') ? await response.json() : undefined) as T;
+}
+
+export async function login(space: Space, username: string, password: string) {
+  const auth = await api<AuthResult>('/api/auth/login', {
+    method: 'POST',
+    anonymous: true,
+    body: { username: username.trim(), password, space: SPACE_ROLE[space] },
+  });
+  return saveSession(space, auth);
+}
+
+export async function logout() {
+  const session = getSession();
+  await clearSession();
+  if (session) {
+    await fetch(url('/api/auth/logout'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...CLIENT_HEADER },
+      body: JSON.stringify({ refreshToken: session.refreshToken }),
+    }).catch(() => undefined);
+  }
+}
+
+export function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof TypeError) return 'Connexion impossible. Vérifiez votre réseau.';
+  return 'Une erreur est survenue.';
+}

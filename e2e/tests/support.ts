@@ -56,13 +56,24 @@ export async function eventually<T>(fn: () => Promise<T>, timeout = 20_000): Pro
 }
 
 /** Thin client of the REST API (through the frontend /api proxy). */
+/** The website (administration + API proxy) and the mobile app (its web export, test only). */
+export const WEB_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+export const APP_URL = process.env.E2E_APP_URL ?? 'http://localhost:8095';
+/** Header of the mobile app: beneficiaries and staff may only sign in from it. */
+export const APP_HEADER = { 'X-Client-App': 'damascino-mobile/e2e' };
+
 export class Api {
   constructor(private request: APIRequestContext) {}
 
+  /** Calls the API the way the mobile app does (the administration is not affected by the app header). */
   async raw(method: string, path: string, token?: string, body?: unknown) {
-    return this.request.fetch(path, {
+    return this.request.fetch(`${WEB_URL}${path}`, {
       method,
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+      headers: {
+        ...APP_HEADER,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
       data: body === undefined ? undefined : JSON.stringify(body),
     });
   }
@@ -130,12 +141,15 @@ export class Api {
   }
 }
 
-/** Fills and submits the login form of a space. */
+/**
+ * Fills and submits the login form of a space: the administration on the website, the beneficiary and staff
+ * spaces in the mobile app.
+ */
 export async function uiLogin(page: Page, space: Space, username: string, password: string) {
-  const path = { beneficiary: '/connexion', staff: '/personnel', admin: '/admin/connexion' }[space];
-  await page.goto(path);
-  await page.getByLabel(space === 'beneficiary' ? 'Identifiant (numéro de téléphone)' : 'Identifiant').fill(username);
-  await page.getByLabel(space === 'staff' ? 'Code PIN' : 'Mot de passe').fill(password);
+  if (space === 'admin') await page.goto(`${WEB_URL}/admin/connexion`);
+  else await page.goto(`${APP_URL}/connexion?espace=${space}`);
+  await page.getByLabel(space === 'beneficiary' ? 'Identifiant (numéro de téléphone)' : 'Identifiant', { exact: true }).fill(username);
+  await page.getByLabel(space === 'staff' ? 'Code PIN' : 'Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
 }
 
@@ -178,6 +192,20 @@ export async function beneficiaryLogin(page: Page, phone: string, password: stri
   await expect(page).toHaveURL(/\/espace$/);
 }
 
+/** Staff signed in the app: the scanner is open. */
+export async function staffLogin(page: Page, username: string, pin: string) {
+  await uiLogin(page, 'staff', username, pin);
+  await expect(page).toHaveURL(/\/scanner$/);
+}
+
+/** Types a QR code in the scanner of the app (manual entry, when the camera is not used). */
+export async function manualScan(page: Page, token: string) {
+  const field = page.getByPlaceholder('DP1…');
+  if (!(await field.isVisible())) await page.getByText('Saisie manuelle du code').click();
+  await field.fill(token);
+  await page.getByRole('button', { name: 'Vérifier' }).click();
+}
+
 /** Till registered in the administration, with its API key. */
 export async function createTill(api: Api, adminToken: string) {
   const created = await api.call<{ terminal: { id: string; name: string }; apiKey: string }>('POST', '/api/pos-terminals', adminToken, {
@@ -188,7 +216,7 @@ export async function createTill(api: Api, adminToken: string) {
 
 /** Calls the till API with an API key (the way a till software does). */
 export async function tillCall<T = Record<string, any>>(request: APIRequestContext, apiKey: string, endpoint: string, body?: unknown) {
-  const response = await request.fetch(`/api/pos/v1/${endpoint}`, {
+  const response = await request.fetch(`${WEB_URL}/api/pos/v1/${endpoint}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: { 'X-Api-Key': apiKey, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
     data: body === undefined ? undefined : JSON.stringify(body),

@@ -2,16 +2,16 @@ import { chromium, devices, expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { alertIn, Api, beneficiaryLogin, eventually, readyBeneficiary, uiLogin } from './support';
+import { alertIn, Api, beneficiaryLogin, eventually, manualScan, readyBeneficiary, staffLogin, uiLogin } from './support';
 import { writeQrVideo } from './qr-video';
 
-async function manualScan(page: Page, token: string) {
-  await page.getByText('Saisie manuelle du code').click();
-  await page.getByPlaceholder('DP1…').fill(token);
-  await page.getByRole('button', { name: 'Vérifier' }).click();
+/** The web build of the camera decodes with zxing-wasm, fetched from a CDN at runtime: served from node_modules. */
+async function serveBarcodeDecoder(page: Page) {
+  const wasm = path.join(__dirname, '../../mobile/node_modules/zxing-wasm/dist/reader/zxing_reader.wasm');
+  await page.route(/zxing-wasm@.*\.wasm$/, (route) => route.fulfill({ path: wasm, contentType: 'application/wasm' }));
 }
 
-test.describe('Espace personnel · scanner', () => {
+test.describe('Application · espace personnel (scanner)', () => {
   test('scan par la caméra du QR affiché par le bénéficiaire', async ({ request }) => {
     const api = new Api(request);
     const b = await readyBeneficiary(api);
@@ -25,7 +25,8 @@ test.describe('Espace personnel · scanner', () => {
     });
     const context = await browser.newContext({ ...devices['Pixel 7'], baseURL: test.info().project.use.baseURL, permissions: ['camera'] });
     const page = await context.newPage();
-    await uiLogin(page, 'staff', staff.username, staff.pin);
+    await serveBarcodeDecoder(page);
+    await staffLogin(page, staff.username, staff.pin);
 
     // the fake camera shows the code: it is decoded without any manual action
     await expect(page.getByText('Avantage valide')).toBeVisible({ timeout: 25_000 });
@@ -48,11 +49,11 @@ test.describe('Espace personnel · scanner', () => {
     const tokens: string[] = [];
     phone.on('response', async (r) => r.url().endsWith('/api/privileges/qr') && r.ok() && tokens.push((await r.json()).token));
     await beneficiaryLogin(phone, b.credentials.phone, b.password);
-    await phone.getByRole('link', { name: 'Utiliser mon avantage' }).click();
+    await phone.getByRole('button', { name: 'Utiliser mon avantage' }).click();
     await expect.poll(() => tokens.length).toBeGreaterThan(0);
 
     // caisse
-    await uiLogin(page, 'staff', staff.username, staff.pin);
+    await staffLogin(page, staff.username, staff.pin);
     await expect(page.getByText(staff.displayName)).toBeVisible();
     await manualScan(page, tokens[tokens.length - 1]);
     await expect(page.getByRole('heading', { name: 'Avantage valide' })).toBeVisible();
@@ -72,11 +73,11 @@ test.describe('Espace personnel · scanner', () => {
 
     // le téléphone du client passe à « Avantage utilisé »
     await expect(phone.getByRole('heading', { name: 'Avantage utilisé' })).toBeVisible({ timeout: 15_000 });
-    await expect(phone.getByText('Remise de 20 % (8 DT) appliquée.')).toBeVisible();
-    await phone.getByRole('link', { name: 'Terminer' }).click();
+    await expect(phone.getByText('Remise de 20 % (8 DT) appliquée. Bon appétit !')).toBeVisible();
+    await phone.getByRole('button', { name: 'Terminer' }).click();
     await expect(phone.getByText("Déjà utilisé aujourd'hui")).toBeVisible();
     await expect(phone.getByRole('button', { name: /De nouveau disponible le/ })).toBeDisabled();
-    await expect(phone.getByText('(8 DT)')).toBeVisible();
+    await expect(phone.getByText(/\(8 DT\)/).filter({ visible: true })).toBeVisible();
 
     // le même code présenté une seconde fois est refusé
     await page.getByRole('button', { name: 'Scanner un autre client' }).click();
@@ -94,7 +95,7 @@ test.describe('Espace personnel · scanner', () => {
   test('motifs de refus : code falsifié, bénéficiaire désactivé, partenaire inactif', async ({ page, request }) => {
     const api = new Api(request);
     const staff = await api.createStaff(await api.admin());
-    await uiLogin(page, 'staff', staff.username, staff.pin);
+    await staffLogin(page, staff.username, staff.pin);
 
     await manualScan(page, 'DP1.eyJiIjoiZmFrZSJ9.c2lnbmF0dXJl');
     await expect(page.getByText('QR code invalide')).toBeVisible();
@@ -124,7 +125,7 @@ test.describe('Espace personnel · scanner', () => {
     const staff = await api.createStaff(b.admin);
     const { token, expiresAt } = await api.qr(b.auth.accessToken);
     await page.waitForTimeout(Math.max(0, new Date(expiresAt).getTime() - Date.now()) + 1500);
-    await uiLogin(page, 'staff', staff.username, staff.pin);
+    await staffLogin(page, staff.username, staff.pin);
     await manualScan(page, token);
     await expect(page.getByText("QR code expiré : demandez au client d'afficher le code actuel")).toBeVisible();
   });
@@ -182,17 +183,16 @@ test.describe('Espace personnel · scanner', () => {
     const api = new Api(request);
     const staff = await api.createStaff(await api.admin());
     await page.clock.install();
-    await uiLogin(page, 'staff', staff.username, staff.pin);
-    await expect(page).toHaveURL(/\/personnel\/scanner$/);
+    await staffLogin(page, staff.username, staff.pin);
     await page.clock.fastForward('04:00');
-    await expect(page).toHaveURL(/\/personnel\/scanner$/);
+    await expect(page).toHaveURL(/\/scanner$/);
     await page.getByText('Saisie manuelle du code').click(); // activité : le compteur repart
     await page.clock.fastForward('04:00');
-    await expect(page).toHaveURL(/\/personnel\/scanner$/);
+    await expect(page).toHaveURL(/\/scanner$/);
     await page.clock.fastForward('01:30');
-    await expect(page).toHaveURL(/\/personnel$/);
-    await page.goto('/personnel/scanner');
-    await expect(page).toHaveURL(/\/personnel$/);
+    await expect(page).toHaveURL(/\/connexion\?espace=staff$/);
+    await page.goto('/scanner');
+    await expect(page).toHaveURL(/\/bienvenue$/);
   });
 
   test('un compte scanner désactivé ne peut plus se connecter', async ({ page, request }) => {

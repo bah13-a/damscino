@@ -15,6 +15,7 @@ import tn.damascino.common.cqrs.QueryBus;
 import tn.damascino.common.security.Role;
 import tn.damascino.common.security.SecuritySupport;
 import tn.damascino.identity.application.AuthResult;
+import tn.damascino.identity.application.ClientPolicy;
 import tn.damascino.identity.application.command.ChangePasswordCommand;
 import tn.damascino.identity.application.command.LoginCommand;
 import tn.damascino.identity.application.command.LogoutCommand;
@@ -28,10 +29,12 @@ public class AuthController {
 
     private final CommandBus commands;
     private final QueryBus queries;
+    private final ClientPolicy clientPolicy;
 
-    public AuthController(CommandBus commands, QueryBus queries) {
+    public AuthController(CommandBus commands, QueryBus queries, ClientPolicy clientPolicy) {
         this.commands = commands;
         this.queries = queries;
+        this.clientPolicy = clientPolicy;
     }
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password, @NotNull Role space) {
@@ -45,7 +48,9 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResult login(@Valid @RequestBody LoginRequest request,
-                            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+                            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
+                            @RequestHeader(value = ClientPolicy.HEADER, required = false) String clientApp) {
+        clientPolicy.checkLogin(request.space(), clientApp);
         return commands.dispatch(new LoginCommand(request.username(), request.password(), request.space(), userAgent));
     }
 

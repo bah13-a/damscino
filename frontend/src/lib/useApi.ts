@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, errorMessage } from './api';
 import type { Space } from './session';
 
@@ -9,17 +9,23 @@ export function useApi<T>(space: Space, path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // only the latest request may update the state: a slow earlier answer (e.g. the unfiltered list while the user
+  // is typing a search) must not overwrite a newer one
+  const latest = useRef(0);
 
   const reload = useCallback(async () => {
     if (!path) return;
+    const request = ++latest.current;
     setLoading(true);
     try {
-      setData(await api<T>(space, path));
+      const result = await api<T>(space, path);
+      if (request !== latest.current) return;
+      setData(result);
       setError(null);
     } catch (e) {
-      setError(errorMessage(e));
+      if (request === latest.current) setError(errorMessage(e));
     } finally {
-      setLoading(false);
+      if (request === latest.current) setLoading(false);
     }
   }, [space, path]);
 

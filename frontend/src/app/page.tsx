@@ -1,39 +1,17 @@
-import Link from 'next/link';
-import { Logo, MotifBand } from '@/components/ui';
+import { AppLanding } from '@/components/AppLanding';
 
 export default function HomePage() {
   return (
-    <main className="bg-damask flex min-h-dvh flex-col px-4 py-8 text-white">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <Logo light size="lg" />
-        <div className="flex flex-1 flex-col justify-center py-10">
-          <p className="font-display text-sm font-medium uppercase tracking-[0.25em] text-gold-400">Programme partenaires</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold leading-tight">
-            −20 % sur votre plat,
-            <br />
-            chaque jour.
-          </h1>
-          <p className="mt-4 text-white/80">
-            Réservé aux collaborateurs des entreprises partenaires de Damascino. Connectez-vous avec l&apos;identifiant
-            remis par votre entreprise et présentez votre QR code en caisse.
-          </p>
-          <Link
-            href="/connexion"
-            className="mt-8 inline-flex items-center justify-center rounded-xl bg-white px-6 py-4 font-semibold text-brand-700 transition hover:bg-brand-50"
-          >
-            Accéder à mon avantage
-          </Link>
-        </div>
-        <MotifBand tone="white" className="mb-6 opacity-30" />
-        <nav className="flex justify-center gap-6 pb-safe text-sm text-white/70">
-          <Link href="/personnel" className="hover:text-white">
-            Espace personnel
-          </Link>
-          <Link href="/admin/connexion" className="hover:text-white">
-            Administration
-          </Link>
-        </nav>
-      </div>
-    </main>
+    <AppLanding
+      audience="beneficiary"
+      title={
+        <>
+          Votre avantage Damascino,
+          <br />
+          dans votre poche.
+        </>
+      }
+      intro="Réservé aux collaborateurs des entreprises partenaires de Damascino : une remise sur un plat éligible, avec un QR code personnel renouvelé toutes les 30 secondes dans l’application."
+    />
   );
 }

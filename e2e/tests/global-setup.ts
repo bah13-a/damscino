@@ -1,8 +1,13 @@
 import { request, type FullConfig } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
 import { ADMIN } from './support';
 
 /** Makes sure the super-administrator has the known E2E password (first login forces a change). */
 export default async function globalSetup(config: FullConfig) {
+  if (!process.env.E2E_APP_URL && !fs.existsSync(path.join(__dirname, '../../mobile/dist/index.html'))) {
+    throw new Error("L'application mobile n'est pas construite pour les tests : lancer `npm run build:app` dans e2e/.");
+  }
   const baseURL = config.projects[0].use.baseURL!;
   const api = await request.newContext({ baseURL });
   const login = (password: string) =>

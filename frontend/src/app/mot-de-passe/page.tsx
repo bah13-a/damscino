@@ -1,11 +1,11 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Suspense, useState, type FormEvent } from 'react';
 import { AuthShell } from '@/components/AuthShell';
 import { Alert, Button, Field } from '@/components/ui';
 import { api, errorMessage, logout } from '@/lib/api';
-import { HOME_PATH, isSpace, LOGIN_PATH, saveSession, type Space } from '@/lib/session';
+import { HOME_PATH, LOGIN_PATH, saveSession, type Space } from '@/lib/session';
 import type { AuthResult } from '@/lib/types';
 import { useSession } from '@/lib/useSession';
 
@@ -93,9 +93,8 @@ function ChangePasswordForm({ space }: { space: Space }) {
 }
 
 function Content() {
-  const params = useSearchParams();
-  const value = params.get('espace');
-  const space: Space = isSpace(value) ? value : 'beneficiary';
+  // beneficiaries and staff change their password in the mobile app: on the web, only the administration
+  const space: Space = 'admin';
   return (
     <AuthShell title="Changer le mot de passe">
       <ChangePasswordForm space={space} />

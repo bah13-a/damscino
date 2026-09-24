@@ -30,8 +30,9 @@ final class BeneficiarySpecifications {
                     List<Predicate> tokenMatches = new ArrayList<>(List.of(
                             cb.like(cb.lower(root.get("firstName")), like),
                             cb.like(cb.lower(root.get("lastName")), like)));
+                    // a phone fragment ("98 123", "+216 98…"), not a name that happens to contain a digit
                     String digits = token.replaceAll("\\D", "");
-                    if (!digits.isEmpty()) {
+                    if (isPhoneFragment(token)) {
                         tokenMatches.add(cb.like(root.get("phone"), "%" + digits + "%"));
                     }
                     any.add(cb.or(tokenMatches.toArray(Predicate[]::new)));
@@ -40,5 +41,9 @@ final class BeneficiarySpecifications {
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    static boolean isPhoneFragment(String token) {
+        return token.matches("[+().\\-]*\\d[\\d+().\\-]*");
     }
 }

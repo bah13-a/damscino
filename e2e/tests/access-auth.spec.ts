@@ -2,26 +2,34 @@ import { expect, test } from '@playwright/test';
 import { ADMIN, alertIn, Api, uid, uiLogin } from './support';
 
 test.describe('Accès et authentification', () => {
-  test("la page d'accueil mène aux trois espaces", async ({ page }) => {
+  test("le site renvoie bénéficiaires et personnel vers l'application, l'administration reste sur le web", async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /−20 % sur votre plat/ })).toBeVisible();
-    await page.getByRole('link', { name: 'Accéder à mon avantage' }).click();
-    await expect(page).toHaveURL(/\/connexion$/);
-    await page.goto('/');
-    await page.getByRole('link', { name: 'Espace personnel' }).click();
+    await expect(page.getByRole('heading', { name: /Votre avantage Damascino/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Télécharger pour Android' })).toHaveAttribute('href', /\.apk$|play\.google|releases/);
+    await expect(page.getByText("Ouvrez-la, choisissez « Je suis bénéficiaire »")).toBeVisible();
+    await page.getByRole('link', { name: 'Personnel Damascino' }).click();
     await expect(page.getByRole('heading', { name: 'Espace personnel' })).toBeVisible();
-    await page.goto('/');
+    await expect(page.getByText('Ouvrez-la, choisissez « Personnel Damascino »')).toBeVisible();
     await page.getByRole('link', { name: 'Administration' }).click();
     await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
   });
 
-  test("les pages protégées redirigent vers la connexion de leur espace", async ({ page }) => {
+  test('les anciennes pages bénéficiaire et scanner du site redirigent vers le téléchargement', async ({ page }) => {
     await page.goto('/admin/partenaires');
     await expect(page).toHaveURL(/\/admin\/connexion$/);
-    await page.goto('/espace');
-    await expect(page).toHaveURL(/\/connexion$/);
-    await page.goto('/personnel/scanner');
-    await expect(page).toHaveURL(/\/personnel$/);
+    for (const [from, to] of [['/espace', /\/$/], ['/espace/qr', /\/$/], ['/personnel/scanner', /\/personnel$/]] as const) {
+      await page.goto(from);
+      await expect(page, from).toHaveURL(to);
+    }
+  });
+
+  test("bénéficiaires et personnel ne peuvent se connecter que depuis l'application", async ({ request }) => {
+    const api = new Api(request);
+    const staff = await api.createStaff(await api.admin());
+    const fromBrowser = await request.post('/api/auth/login', { data: { username: staff.username, password: staff.pin, space: 'STAFF' } });
+    expect(fromBrowser.status()).toBe(403);
+    expect(await fromBrowser.json()).toMatchObject({ code: 'MOBILE_APP_REQUIRED', message: "Connectez-vous depuis l'application mobile Damascino Privilèges." });
+    expect((await api.login('staff', staff.username, staff.pin)).accessToken).toBeTruthy();
   });
 
   test('un mauvais mot de passe affiche une erreur', async ({ page }) => {
@@ -74,9 +82,6 @@ test.describe('Accès et authentification', () => {
     await uiLogin(page, 'admin', staff.username, staff.pin);
     await expect(alertIn(page)).toHaveText('Identifiant ou mot de passe incorrect');
 
-    // connecté au scanner, l'espace admin reste fermé
-    await uiLogin(page, 'staff', staff.username, staff.pin);
-    await expect(page).toHaveURL(/\/personnel\/scanner$/);
     await page.goto('/admin');
     await expect(page).toHaveURL(/\/admin\/connexion$/);
 

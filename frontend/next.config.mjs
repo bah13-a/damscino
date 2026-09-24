@@ -11,6 +11,14 @@ const nextConfig = {
     proxyTimeout: 120_000,
   },
   // The browser only talks to this origin: /api/* is proxied to the API gateway (no CORS, one URL to share).
+  // the beneficiary and staff spaces moved to the mobile app
+  async redirects() {
+    return [
+      { source: '/espace/:path*', destination: '/', permanent: false },
+      { source: '/espace', destination: '/', permanent: false },
+      { source: '/personnel/scanner', destination: '/personnel', permanent: false },
+    ];
+  },
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${apiUrl}/api/:path*` }];
   },

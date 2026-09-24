@@ -17,11 +17,11 @@ export function PartnerWelcome() {
       .catch(() => undefined);
   }, [partnerId]);
 
-  if (!name) return <>Connectez-vous avec l&apos;identifiant et le mot de passe remis par votre entreprise.</>;
+  if (!name) return <>Installez l&apos;application, puis connectez-vous avec l&apos;identifiant et le mot de passe remis par votre entreprise.</>;
   return (
     <>
-      Bienvenue aux collaborateurs de <strong className="text-brand-700">{name}</strong>. Connectez-vous avec l&apos;identifiant
-      remis par votre entreprise.
+      Bienvenue aux collaborateurs de <strong className="text-gold-400">{name}</strong>. Installez l&apos;application, puis
+      connectez-vous avec l&apos;identifiant remis par votre entreprise.
     </>
   );
 }
