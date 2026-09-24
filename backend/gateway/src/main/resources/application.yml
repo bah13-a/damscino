@@ -13,9 +13,12 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
       globalcors:
+        # The browser only talks to the frontend (same origin, /api proxied by Next.js), which forwards the Origin
+        # header of the public address (Codespace, Render, tunnel…). Auth is a bearer token, not a cookie, so any
+        # origin can be accepted; set CORS_ORIGINS to restrict it.
         cors-configurations:
           '[/**]':
-            allowed-origin-patterns: ${CORS_ORIGINS:http://localhost:3000}
+            allowed-origin-patterns: ${CORS_ORIGINS:*}
             allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
             allowed-headers: '*'
             exposed-headers: Content-Disposition

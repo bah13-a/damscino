@@ -85,7 +85,7 @@ services:
       PARTNER_URL: http://partner-service:8082
       PRIVILEGE_URL: http://privilege-service:8083
       REPORTING_URL: http://reporting-service:8084
-      CORS_ORIGINS: ${PUBLIC_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       JAVA_OPTS: *java-opts
     ports:
       - "8080:8080"

@@ -99,3 +99,14 @@ test.describe('Accès et authentification', () => {
     await expect(alertIn(page)).toContainText('Compte temporairement bloqué');
   });
 });
+
+test("l'application fonctionne quelle que soit son adresse publique (Codespace, Render, tunnel)", async ({ request }) => {
+  // the Next.js proxy forwards the Origin of the public address to the gateway: it must not be rejected (403)
+  for (const origin of ['https://mon-codespace-3000.app.github.dev', 'https://abc.trycloudflare.com']) {
+    const response = await request.post('/api/auth/login', {
+      headers: { Origin: origin },
+      data: { username: 'admin', password: 'mauvais', space: 'ADMIN' },
+    });
+    expect(response.status(), origin).toBe(401);
+  }
+});

@@ -116,8 +116,6 @@ services:
         value: https://damascino-privilege.onrender.com
       - key: REPORTING_URL
         value: https://damascino-reporting.onrender.com
-      - key: CORS_ORIGINS
-        value: https://damascino-privileges.onrender.com
 
   - type: web
     name: damascino-privileges
