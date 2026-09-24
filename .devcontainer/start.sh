@@ -16,6 +16,13 @@ for _ in $(seq 1 120); do
   sleep 5
 done
 
+if ! curl -sf http://localhost:8080/actuator/health >/dev/null; then
+  echo "⚠ L'application n'est pas encore prête. État des services :"
+  docker compose ps --format 'table {{.Service}}\t{{.Status}}'
+  echo "Dernières erreurs :"
+  docker compose logs --tail=15 identity-service partner-service privilege-service reporting-service gateway 2>&1 | grep -iE "error|exception|refused" | tail -15
+fi
+
 # public URL so that phones can open it without a GitHub account (camera needs HTTPS: provided by Codespaces)
 if [ -n "${CODESPACE_NAME:-}" ]; then
   gh codespace ports visibility 3000:public -c "$CODESPACE_NAME" >/dev/null 2>&1 \

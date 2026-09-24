@@ -27,7 +27,8 @@ async function parseError(response: Response): Promise<ApiError> {
     const data = await response.json();
     return new ApiError(response.status, data.code ?? 'ERROR', data.message ?? 'Erreur', data.fields ?? {});
   } catch {
-    if (response.status === 502 || response.status === 503 || response.status === 504) {
+    // 500 without JSON body = the Next.js proxy could not reach the API gateway (starting or stopped)
+    if (response.status >= 500) {
       return new ApiError(response.status, 'UNAVAILABLE', 'Service en cours de démarrage, réessayez dans un instant.');
     }
     return new ApiError(response.status, 'ERROR', `Erreur ${response.status}`);

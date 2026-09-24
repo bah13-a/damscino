@@ -47,6 +47,12 @@ services:
 
   identity-service:
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      start_period: 180s
+      retries: 6
     build: { context: ./backend, dockerfile: identity-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -56,6 +62,12 @@ services:
 
   partner-service:
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      start_period: 180s
+      retries: 6
     build: { context: ./backend, dockerfile: partner-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -64,6 +76,12 @@ services:
 
   privilege-service:
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      start_period: 180s
+      retries: 6
     build: { context: ./backend, dockerfile: privilege-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -72,6 +90,12 @@ services:
 
   reporting-service:
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      start_period: 180s
+      retries: 6
     build: { context: ./backend, dockerfile: reporting-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -79,6 +103,12 @@ services:
 
   gateway:
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      start_period: 180s
+      retries: 6
     build: { context: ./backend, dockerfile: gateway/Dockerfile }
     environment:
       IDENTITY_URL: http://identity-service:8081
@@ -89,7 +119,11 @@ services:
       JAVA_OPTS: *java-opts
     ports:
       - "8080:8080"
-    depends_on: [identity-service, partner-service, privilege-service, reporting-service]
+    depends_on:
+      identity-service: { condition: service_healthy }
+      partner-service: { condition: service_healthy }
+      privilege-service: { condition: service_healthy }
+      reporting-service: { condition: service_healthy }
 
   frontend:
     restart: unless-stopped
@@ -99,7 +133,8 @@ services:
         API_URL: http://gateway:8080
     ports:
       - "3000:3000"
-    depends_on: [gateway]
+    depends_on:
+      gateway: { condition: service_healthy }
 
 volumes:
   pgdata:
