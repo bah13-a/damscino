@@ -94,6 +94,20 @@ l'espace bénéficiaire et la caisse. Détails pour l'éditeur : [INTEGRATION_CA
 - Chaque service vérifie lui-même le JWT et les rôles (`ADMIN`, `STAFF`, `BENEFICIARY`).
 - Données personnelles limitées au nom, prénom, téléphone et partenaire.
 
+### Protections web (XSS, injection, force brute)
+
+| Couche | Protection |
+|---|---|
+| Pages (Next.js, `src/middleware.ts`) | **Content-Security-Policy avec nonce** renouvelé à chaque requête (`script-src 'nonce-…' 'strict-dynamic'`) : un script injecté ou un attribut `onerror=` ne s'exécute pas. `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `connect-src 'self'`, `frame-ancestors 'none'`. |
+| Pages (`next.config.mjs`) | `X-Frame-Options: DENY` (anti-clickjacking), `X-Content-Type-Options: nosniff`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy: same-origin`, `Referrer-Policy`, `Permissions-Policy` (caméra limitée au site, micro, géolocalisation, paiement, USB interdits). |
+| Rendu | React échappe toutes les données affichées ; aucun `dangerouslySetInnerHTML` dans le code. |
+| API (gateway, `SecurityHeadersFilter`) | Réponses JSON et fichiers : `Content-Security-Policy: default-src 'none'; sandbox`, `nosniff`, `X-Frame-Options: DENY`, `Cache-Control: no-store` (données personnelles jamais en cache), `Cross-Origin-Resource-Policy: same-origin`. |
+| Saisies (tous les services, `SafeTextJsonConfig`) | Chaque texte des requêtes JSON est contrôlé : **balises HTML et URL `javascript:` refusées** (400 `VALIDATION_ERROR` sur le champ, message « Contenu non autorisé »), caractères invisibles et d'inversion de sens supprimés. Mots de passe, PIN, jetons et clés ne sont jamais modifiés. Même contrôle sur les lignes des imports Excel / CSV (ligne ignorée avec le motif). |
+| Exports CSV (`TabularExport`) | **Injection de formule** neutralisée : une cellule commençant par `=`, `+`, `-`, `@` est préfixée d'une apostrophe (les nombres comme `+21698123456` restent intacts). Les exports Excel écrivent du texte, jamais des formules. |
+| Connexion (gateway, `LoginThrottleFilter`) | Après **100 échecs de connexion en 10 min depuis une même adresse**, les tentatives suivantes reçoivent 429 : freine le test d'un mot de passe sur de nombreux comptes, en plus du blocage de 15 min par compte après 5 échecs. Réglable : `SECURITY_LOGIN_THROTTLE_MAX_FAILURES`, `SECURITY_LOGIN_THROTTLE_WINDOW`. L'adresse est celle transmise par le proxy d'entrée (`X-Forwarded-For`, posé par Caddy) : exposer le front derrière un proxy qui l'écrase. |
+| Taille des requêtes (gateway, `RequestSizeFilter`) | Requêtes de plus de 12 Mo refusées (413) ; `SECURITY_MAX_REQUEST_SIZE`. |
+| Base de données | Requêtes JPA paramétrées uniquement (pas de SQL construit par concaténation). |
+
 ## Modèle de données (extrait)
 
 ```mermaid

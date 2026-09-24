@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tn.damascino.common.cqrs.CommandHandler;
 import tn.damascino.common.outbox.EventPublisher;
 import tn.damascino.common.util.PhoneNumbers;
+import tn.damascino.common.web.SafeText;
 import tn.damascino.partner.application.Audit;
 import tn.damascino.partner.application.CredentialIssuer;
 import tn.damascino.partner.application.IssuedCredentials;
@@ -80,6 +81,8 @@ public class ImportBeneficiariesHandler implements CommandHandler<ImportBenefici
             String reason = null;
             if (row.lastName().isBlank() || row.firstName().isBlank()) {
                 reason = "Nom ou prénom manquant";
+            } else if (SafeText.containsMarkup(row.lastName()) || SafeText.containsMarkup(row.firstName())) {
+                reason = SafeText.MESSAGE;
             } else if (!PhoneNumbers.isValid(phone)) {
                 reason = "Téléphone invalide (8 chiffres attendus)";
             } else if (!seenInFile.add(phone)) {
@@ -95,7 +98,8 @@ public class ImportBeneficiariesHandler implements CommandHandler<ImportBenefici
                 continue;
             }
             Beneficiary beneficiary = beneficiaries.save(
-                    new Beneficiary(partner.getId(), row.firstName(), row.lastName(), phone, now));
+                    new Beneficiary(partner.getId(), SafeText.stripInvisible(row.firstName()),
+                            SafeText.stripInvisible(row.lastName()), phone, now));
             events.publish(beneficiary.snapshot());
             created.add(credentialIssuer.issue(beneficiary));
         }

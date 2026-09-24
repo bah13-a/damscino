@@ -63,6 +63,9 @@ Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
   lui-même la remise sur le bon plat du ticket, avec réservation le temps du ticket, confirmation idempotente,
   annulation / remboursement, correspondance des articles et simulateur de caisse. Guide pour l'éditeur :
   [docs/INTEGRATION_CAISSE.md](docs/INTEGRATION_CAISSE.md), spécification [OpenAPI](docs/api-caisse/openapi.yaml).
+- **Sécurité web** : CSP à nonce, en-têtes anti-clickjacking / anti-sniffing / HSTS, saisies contenant du HTML ou
+  du script refusées dans tous les services et les imports, exports CSV protégés contre l'injection de formules,
+  limitation des échecs de connexion par adresse ([détails](docs/ARCHITECTURE.md#protections-web-xss-injection-force-brute)).
 - Statistiques (autorisés, comptes activés, utilisateurs actifs, passages, remises en DT) filtrables par partenaire,
   période et bénéficiaire ; journal des passages, des refus et des actions d'administration ; exports Excel et CSV.
 
@@ -118,6 +121,8 @@ Pas à pas : [docs/DEPLOIEMENT_GRATUIT.md](docs/DEPLOIEMENT_GRATUIT.md). Un Blue
 | `IDENTITY_URL`, `PARTNER_URL`, `PRIVILEGE_URL`, `REPORTING_URL` | gateway | Adresses des services |
 | `API_URL` | frontend (build) | Adresse de la gateway, utilisée par le proxy `/api/*` |
 | `NEXT_PUBLIC_STAFF_IDLE_MINUTES` | frontend | Déconnexion automatique du scanner (défaut 5 min) |
+| `SECURITY_LOGIN_THROTTLE_MAX_FAILURES`, `SECURITY_LOGIN_THROTTLE_WINDOW` | gateway | Échecs de connexion tolérés par adresse avant refus 429 (défaut 100 en `10m`) |
+| `SECURITY_MAX_REQUEST_SIZE` | gateway | Taille maximale d'une requête (défaut `12MB`) |
 
 ## Tests
 
@@ -128,12 +133,13 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 ### Tests de bout en bout (Playwright)
 
-47 scénarios sur les trois espaces, la remise en caisse, le rapprochement et l'API caisse, contre une stack démarrée (locale, Codespace ou serveur) : connexion et changement de mot
+53 scénarios sur les trois espaces, la remise en caisse, le rapprochement et l'API caisse, contre une stack démarrée (locale, Codespace ou serveur) : connexion et changement de mot
 de passe imposé, blocage, droits par rôle, partenaires et règles, catégories, import Excel/CSV et export des accès,
 bénéficiaires, comptes, QR renouvelé toutes les 30 s, session unique, **scan par caméra** (QR injecté dans une caméra
 simulée), refus (code falsifié, expiré, déjà utilisé, bénéficiaire ou partenaire inactif), quota hebdomadaire,
 validations simultanées, déconnexion du scanner après inactivité, statistiques, journaux et exports, PWA et
-affichage mobile.
+affichage mobile, en-têtes de sécurité et CSP (aucune violation), refus des saisies contenant du script, exports
+CSV sans formule exécutable.
 
 ```bash
 docker compose up -d --build

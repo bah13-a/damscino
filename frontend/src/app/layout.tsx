@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import { PwaRegister } from '@/components/PwaRegister';
 import './globals.css';
@@ -24,6 +25,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  // reading the per-request CSP nonce renders pages on demand, so that Next.js stamps it on its scripts
+  headers().get('x-nonce');
   return (
     <html lang="fr">
       <head>

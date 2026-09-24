@@ -36,6 +36,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     public ResponseEntity<ApiError> handleUnreadable(Exception e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof SafeText.UnsafeTextException unsafe) {
+                Map<String, String> fields = new LinkedHashMap<>();
+                fields.put(unsafe.field() == null ? "body" : unsafe.field(), SafeText.MESSAGE);
+                return ResponseEntity.badRequest().body(new ApiError("VALIDATION_ERROR", SafeText.MESSAGE, fields));
+            }
+        }
         return ResponseEntity.badRequest().body(new ApiError("BAD_REQUEST", "Requête invalide"));
     }
 

@@ -27,7 +27,7 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testMatch: /(access|admin|pwa)-.*\.spec\.ts/,
+      testMatch: /(access|admin|pwa|security)-.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1360, height: 900 } },
     },
     {

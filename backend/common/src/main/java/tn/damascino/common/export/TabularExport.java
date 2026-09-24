@@ -19,12 +19,15 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /** Builds Excel (.xlsx) and CSV downloads for every list and statistics table. */
 public final class TabularExport {
 
     private static final MediaType XLSX =
             MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    private static final Pattern NUMBER = Pattern.compile("[+-]?[0-9][0-9 .,]*");
 
     private TabularExport() {
     }
@@ -49,13 +52,31 @@ public final class TabularExport {
             try (CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(out, StandardCharsets.UTF_8),
                     CSVFormat.DEFAULT.builder().setDelimiter(';').setHeader(headers.toArray(String[]::new)).build())) {
                 for (List<Object> row : rows) {
-                    printer.printRecord(row.stream().map(v -> v == null ? "" : v).toList());
+                    printer.printRecord(row.stream().map(TabularExport::csvCell).toList());
                 }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
         return out.toByteArray();
+    }
+
+    /**
+     * Neutralises CSV formula injection: a text cell starting with = + - @ (or a tab / carriage return) would be run
+     * as a formula by Excel, so it is prefixed with an apostrophe. Plain numbers such as +21698123456 or -5 are kept.
+     */
+    static Object csvCell(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (!(value instanceof CharSequence)) {
+            return value;
+        }
+        String text = value.toString();
+        if (text.isEmpty() || "=+-@\t\r".indexOf(text.charAt(0)) < 0 || NUMBER.matcher(text).matches()) {
+            return text;
+        }
+        return "'" + text;
     }
 
     public static byte[] xlsx(String sheetName, List<String> headers, List<List<Object>> rows) {
