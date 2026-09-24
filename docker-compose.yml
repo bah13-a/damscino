@@ -131,6 +131,8 @@ services:
       context: ./frontend
       args:
         API_URL: http://gateway:8080
+        NEXT_PUBLIC_ANDROID_APP_URL: ${ANDROID_APP_URL:-}
+        NEXT_PUBLIC_IOS_APP_URL: ${IOS_APP_URL:-}
     ports:
       - "3000:3000"
     depends_on:

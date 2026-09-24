@@ -8,7 +8,9 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # URL of the API gateway, baked into the /api rewrite at build time
 ARG API_URL=http://gateway:8080
-ENV API_URL=${API_URL} NEXT_OUTPUT=standalone
+ARG NEXT_PUBLIC_ANDROID_APP_URL=
+ARG NEXT_PUBLIC_IOS_APP_URL=
+ENV API_URL=${API_URL} NEXT_OUTPUT=standalone NEXT_PUBLIC_ANDROID_APP_URL=${NEXT_PUBLIC_ANDROID_APP_URL} NEXT_PUBLIC_IOS_APP_URL=${NEXT_PUBLIC_IOS_APP_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

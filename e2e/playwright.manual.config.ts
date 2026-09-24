@@ -15,5 +15,6 @@ export default defineConfig({
     locale: 'fr-FR',
     timezoneId: 'Africa/Tunis',
     acceptDownloads: true,
+    actionTimeout: 20_000,
   },
 });

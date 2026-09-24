@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Redirect, router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Vibration, View } from 'react-native';
+import { ScrollView, StyleSheet, Vibration, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Button, Field, Logo, Spinner, T } from '@/components/ui';
 import { api, errorMessage, logout } from '@/lib/api';
@@ -169,7 +169,7 @@ export default function ScannerScreen() {
         </View>
       </View>
 
-      <View style={[styles.content, { paddingBottom: insets.bottom + 16 }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 16 }]} keyboardShouldPersistTaps="handled">
         {error && <Alert>{error}</Alert>}
 
         {step.kind === 'scan' && (
@@ -259,7 +259,7 @@ export default function ScannerScreen() {
             />
           </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerLink: { color: 'rgba(255,255,255,0.7)', textDecorationLine: 'underline' },
-  content: { flex: 1, padding: 16, gap: 14, width: '100%', maxWidth: 520, alignSelf: 'center' },
+  content: { flexGrow: 1, padding: 16, gap: 14, width: '100%', maxWidth: 520, alignSelf: 'center' },
   camera: { width: '100%', aspectRatio: 1, borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.navy800 },
   cameraPlaceholder: { alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   frame: { position: 'absolute', top: '15%', left: '15%', right: '15%', bottom: '15%', borderWidth: 3, borderColor: 'rgba(255,255,255,0.85)', borderRadius: 20 },

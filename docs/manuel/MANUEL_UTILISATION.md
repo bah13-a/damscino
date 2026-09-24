@@ -33,14 +33,18 @@ entreprises partenaires, avec un **QR code personnel** renouvelé toutes les 30 
 
 ## 0. Présentation
 
-L'application est une **application web mobile** : elle s'ouvre dans le navigateur, sans passer par l'App Store ni
-Google Play, et peut être ajoutée à l'écran d'accueil du téléphone. Elle comporte trois espaces :
+Damascino Privilèges comporte trois espaces. Les bénéficiaires et le personnel de caisse utilisent **l'application
+mobile Damascino Privilèges** (Android, iPhone) ; seule l'administration se fait sur le **site web**.
 
-| Espace | Adresse | Qui | Pour quoi faire |
+| Espace | Où | Qui | Pour quoi faire |
 |---|---|---|---|
-| **Administration** | `/admin/connexion` | Équipe Damascino | Partenaires, bénéficiaires, règles, comptes, statistiques, exports, rapprochement |
-| **Espace personnel** | `/personnel` | Serveurs et caissiers | Scanner le QR code du client et valider le passage |
-| **Espace bénéficiaire** | `/connexion` | Collaborateurs des partenaires | Afficher son QR code du jour et suivre ses passages |
+| **Administration** | Site web, `/admin/connexion` | Équipe Damascino | Partenaires, bénéficiaires, règles, comptes, statistiques, exports, rapprochement |
+| **Espace personnel** | Application mobile → *Personnel Damascino* | Serveurs et caissiers | Scanner le QR code du client et valider le passage |
+| **Espace bénéficiaire** | Application mobile → *Je suis bénéficiaire* | Collaborateurs des partenaires | Afficher son QR code du jour et suivre ses passages |
+
+L'application se télécharge depuis la page d'accueil du site (bouton **Télécharger pour Android**) ou depuis le lien
+d'activation du partenaire. Les identifiants de bénéficiaire et de personnel **ne fonctionnent pas sur le site** :
+la connexion est refusée avec le message *« Connectez-vous depuis l'application mobile Damascino Privilèges. »*
 
 **Le parcours en bref :**
 
@@ -188,8 +192,9 @@ sont créées.
    passe temporaire, Statut*.
 2. Envoyer ce fichier au responsable du partenaire (RH), qui remet à chaque collaborateur son identifiant et son mot
    de passe temporaire.
-3. Joindre le **lien d'activation** et la [Partie 3](#partie-3--guide-du-bénéficiaire-à-remettre-aux-collaborateurs)
-   de ce manuel.
+3. Joindre le **lien d'activation** (fiche du partenaire → *Copier le lien*) et la
+   [Partie 3](#partie-3--guide-du-bénéficiaire-à-remettre-aux-collaborateurs) de ce manuel. Le lien ouvre une page
+   au nom du partenaire qui explique comment **télécharger l'application** et s'y connecter.
 
 > Le mot de passe temporaire reste disponible dans l'export **jusqu'à la première connexion** du bénéficiaire. Ensuite
 > la ligne indique *« Compte activé le … »* et le mot de passe n'est plus consultable par personne.
@@ -342,12 +347,13 @@ création de compte…) avec sa **date**, son **auteur** et le **détail**. Une 
 
 ## Partie 2 — Personnel de caisse (serveurs, caissiers)
 
-Matériel : un **téléphone ou une tablette** avec caméra, près de la caisse, sur l'adresse **`/personnel`**. Pour y
-accéder d'un geste, ajoutez la page à l'écran d'accueil.
+Matériel : un **téléphone ou une tablette Android ou iPhone** avec caméra, près de la caisse, sur lequel est installée
+l'application **Damascino Privilèges** (bouton *Télécharger pour Android* de la page `/personnel` du site).
 
 ### 2.1 Se connecter
 
-1. Ouvrir **`/personnel`**.
+1. Ouvrir l'application et toucher **Personnel Damascino**. À la première ouverture du scanner, **autoriser
+   l'accès à la caméra**.
 2. Saisir **votre** identifiant et **votre** code PIN. Chaque validation est enregistrée à votre nom : ne
    partagez pas votre PIN.
 3. **Se connecter**. L'écran du scanner s'ouvre.
@@ -404,8 +410,8 @@ L'écran rouge indique le **motif**. N'appliquez **aucune remise**.
 
 ### 2.4 Bonnes pratiques
 
-- ✅ Vérifiez que l'**heure défile** et que la **barre dorée bouge** sous le QR du client : une capture d'écran est
-  figée, et de toute façon refusée.
+- ✅ Vérifiez que l'**heure défile** au-dessus du QR du client et que le compte à rebours diminue : une photo de
+  l'écran est figée, et de toute façon refusée.
 - ✅ Vérifiez le **nom** du client.
 - ✅ Saisissez toujours le **prix du plat** : il sert au calcul des remises et au contrôle avec la caisse.
 - ✅ Reportez la remise dans la caisse **immédiatement** après la confirmation.
@@ -420,25 +426,27 @@ L'écran rouge indique le **motif**. N'appliquez **aucune remise**.
 
 ### 3.1 Première connexion (une seule fois)
 
-1. Ouvrez sur votre téléphone le lien reçu de votre entreprise, ou l'adresse de l'application puis
-   **Accéder à mon avantage**.
+1. **Installez l'application Damascino Privilèges** : ouvrez sur votre téléphone le lien reçu de votre entreprise,
+   puis touchez **Télécharger pour Android** et ouvrez le fichier téléchargé (autorisez l'installation si le
+   téléphone le demande). Sur iPhone, suivez le lien App Store ou TestFlight communiqué par Damascino.
 
-   <img src="img/benef-01-accueil.png" alt="Page d'accueil" width="260">
+   <img src="img/benef-00-telechargement.png" alt="Page de téléchargement" width="260">
 
-2. Saisissez votre **identifiant** (votre numéro de téléphone, ex. `98 123 456`) et le **mot de passe temporaire**
+2. Ouvrez l'application et touchez **Je suis bénéficiaire**.
+
+   <img src="img/benef-01-accueil.png" alt="Accueil de l'application" width="260">
+
+3. Saisissez votre **identifiant** (votre numéro de téléphone, ex. `98 123 456`) et le **mot de passe temporaire**
    reçu.
-3. **Se connecter**.
-4. Choisissez **votre propre mot de passe** (8 caractères minimum), confirmez-le, puis **Enregistrer**.
+4. **Se connecter**.
+5. Choisissez **votre propre mot de passe** (8 caractères minimum), confirmez-le, puis **Enregistrer**.
 
 <img src="img/benef-02-connexion.png" alt="Connexion" width="260"> <img src="img/benef-03-nouveau-mot-de-passe.png" alt="Nouveau mot de passe" width="260">
 
-### 3.2 Ajouter l'application à votre écran d'accueil (recommandé)
+### 3.2 Rester connecté
 
-- **iPhone (Safari)** : bouton **Partager** → **Sur l'écran d'accueil** → **Ajouter**.
-- **Android (Chrome)** : bouton **Installer l'application**, proposé dans votre espace, ou menu **⋮** → **Ajouter à
-  l'écran d'accueil**.
-
-L'icône **Privilèges** s'ajoute à côté de vos autres applications, sans rien télécharger dans un store.
+Vous restez connecté : ouvrez simplement l'application **Damascino Privilèges** au moment de payer. Votre session est
+conservée de façon sécurisée sur le téléphone. Si vous vous connectez sur un autre téléphone, l'ancien est déconnecté.
 
 ### 3.3 Votre espace
 
@@ -464,7 +472,7 @@ La rubrique **Mes passages** liste vos utilisations.
 
 - **Un plat éligible par jour** : les boissons et desserts ne sont pas remisés.
 - L'avantage est **personnel** : votre nom s'affiche chez le caissier.
-- Les **captures d'écran ne fonctionnent pas** : le code change toutes les 30 secondes et ne sert qu'une fois.
+- Les **captures d'écran sont bloquées** sur l'écran du QR code, et une photo ne fonctionnerait pas : le code change toutes les 30 secondes et ne sert qu'une fois. L'application met aussi la luminosité au maximum pendant l'affichage du code pour faciliter le scan.
 - **Un seul téléphone à la fois** : si vous vous connectez sur un autre appareil, le précédent est déconnecté.
 - Une connexion internet (4G ou Wi-Fi) est nécessaire pour afficher le code.
 
@@ -511,11 +519,11 @@ Tous les refus sont visibles dans **Utilisations → Refus**.
 
 ## Annexe C — Aide-mémoire
 
-| Rôle | Adresse | Identifiant | Secret |
+| Rôle | Où | Identifiant | Secret |
 |---|---|---|---|
 | Administrateur | `/admin/connexion` | ex. `admin` | Mot de passe (8 car. min.) |
-| Personnel de caisse | `/personnel` | ex. `sami` | Code PIN (4 à 8 chiffres) |
-| Bénéficiaire | `/connexion` | Numéro de téléphone | Mot de passe (8 car. min.) |
+| Personnel de caisse | Application mobile → *Personnel Damascino* | ex. `sami` | Code PIN (4 à 8 chiffres) |
+| Bénéficiaire | Application mobile → *Je suis bénéficiaire* | Numéro de téléphone | Mot de passe (8 car. min.) |
 
 **Au quotidien :** scanner → vérifier le nom → prix du plat → confirmer → saisir la remise dans la caisse (+ code).
 **Chaque jour ou chaque semaine :** Rapprochement avec l'export de la caisse.

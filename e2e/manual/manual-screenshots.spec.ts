@@ -3,7 +3,7 @@ import { chromium, devices, expect, test, type Browser, type BrowserContext, typ
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Api, readXlsx } from '../tests/support';
+import { Api, APP_URL, manualScan, readXlsx, WEB_URL } from '../tests/support';
 
 /**
  * Screenshots of docs/manuel/MANUEL_UTILISATION.md, taken on a fresh database with demonstration data.
@@ -147,15 +147,20 @@ test('captures du manuel d’utilisation', async ({ request }) => {
     await api.confirm(who, (await api.qr(auth.accessToken)).token, price);
   }
 
-  // ─── Espace bénéficiaire (iPhone) ────────────────────────────────────────────────────
-  const phone = await browser.newContext({ ...devices['iPhone 13'], baseURL, locale: 'fr-FR', timezoneId: 'Africa/Tunis' });
+  // ─── Espace bénéficiaire : application mobile (iPhone) ──────────────────────────────
+  const phone = await browser.newContext({ ...devices['iPhone 13'], baseURL: APP_URL, locale: 'fr-FR', timezoneId: 'Africa/Tunis' });
   const amira = await phone.newPage();
+  // the partner activation link opens the download page of the app
+  await amira.goto(`${WEB_URL}/connexion?p=${mallId}`);
+  await expect(amira.getByText('Bienvenue aux collaborateurs de')).toBeVisible();
+  await shot(amira, 'benef-00-telechargement');
   await amira.goto('/');
+  await expect(amira.getByRole('button', { name: 'Je suis bénéficiaire' })).toBeVisible();
   await shot(amira, 'benef-01-accueil');
-  await amira.goto(`/connexion?p=${mallId}`);
+  await amira.goto(`/connexion?espace=beneficiary&p=${mallId}`);
   await amira.getByLabel('Identifiant (numéro de téléphone)').fill(phoneOf(1).replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3'));
-  await amira.getByLabel('Mot de passe').fill(temp(phoneOf(1)));
-  await expect(amira.getByText('Bienvenue aux collaborateurs de Mall of Sfax')).toBeVisible();
+  await amira.getByLabel('Mot de passe', { exact: true }).fill(temp(phoneOf(1)));
+  await expect(amira.getByText('Bienvenue aux collaborateurs de Mall of Sfax.')).toBeVisible();
   await shot(amira, 'benef-02-connexion');
   await amira.getByRole('button', { name: 'Se connecter' }).click();
   await expect(amira).toHaveURL(/mot-de-passe/);
@@ -165,22 +170,22 @@ test('captures du manuel d’utilisation', async ({ request }) => {
   await shot(amira, 'benef-03-nouveau-mot-de-passe');
   await amira.getByRole('button', { name: 'Enregistrer' }).click();
   await expect(amira.getByText('Disponible')).toBeVisible();
-  await shot(amira, 'benef-04-espace', true);
+  await shot(amira, 'benef-04-espace');
   const qrTokens: string[] = [];
   amira.on('response', async (r) => {
     if (r.url().endsWith('/api/privileges/qr') && r.ok()) qrTokens.push((await r.json()).token);
   });
-  await amira.getByRole('link', { name: 'Utiliser mon avantage' }).click();
+  await amira.getByRole('button', { name: 'Utiliser mon avantage' }).click();
   await expect(amira.getByText(/nouveau code dans/)).toBeVisible();
   await expect.poll(() => qrTokens.length).toBeGreaterThan(0);
   await shot(amira, 'benef-05-qr-code');
   const amiraToken = qrTokens[qrTokens.length - 1];
 
-  // ─── Espace personnel (tablette / téléphone de caisse) ──────────────────────────────
+  // ─── Espace personnel : application mobile (tablette / téléphone de caisse) ─────────
   const staffBrowser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
-  const staffContext = await staffBrowser.newContext({ ...devices['Pixel 7'], baseURL, permissions: ['camera'], locale: 'fr-FR', timezoneId: 'Africa/Tunis' });
+  const staffContext = await staffBrowser.newContext({ ...devices['Pixel 7'], baseURL: APP_URL, permissions: ['camera'], locale: 'fr-FR', timezoneId: 'Africa/Tunis' });
   const till = await staffContext.newPage();
-  await till.goto('/personnel');
+  await till.goto('/connexion?espace=staff');
   await till.getByLabel('Identifiant').fill('sami');
   await till.getByLabel('Code PIN').fill('2468');
   await shot(till, 'staff-01-connexion');
@@ -193,20 +198,18 @@ test('captures du manuel d’utilisation', async ({ request }) => {
   await till.getByRole('button', { name: 'Vérifier' }).click();
   await expect(till.getByRole('heading', { name: 'Avantage valide' })).toBeVisible();
   await till.getByLabel(/Prix du plat remisé/).fill('40');
-  await shot(till, 'staff-03-avantage-valide', true);
+  await shot(till, 'staff-03-avantage-valide');
   await till.getByRole('button', { name: 'Confirmer le passage' }).click();
   await expect(till.getByTestId('till-instructions')).toBeVisible();
-  await shot(till, 'staff-04-passage-valide', true);
+  await shot(till, 'staff-04-passage-valide');
   await expect(amira.getByRole('heading', { name: 'Avantage utilisé' })).toBeVisible({ timeout: 15_000 });
   await shot(amira, 'benef-06-avantage-utilise');
-  await amira.getByRole('link', { name: 'Terminer' }).click();
+  await amira.getByRole('button', { name: 'Terminer' }).click();
   await expect(amira.getByText("Déjà utilisé aujourd'hui")).toBeVisible();
-  await shot(amira, 'benef-07-deja-utilise', true);
+  await shot(amira, 'benef-07-deja-utilise');
 
   await till.getByRole('button', { name: 'Scanner un autre client' }).click();
-  await till.getByText('Saisie manuelle du code').click();
-  await till.getByPlaceholder('DP1…').fill(amiraToken);
-  await till.getByRole('button', { name: 'Vérifier' }).click();
+  await manualScan(till, amiraToken);
   await expect(till.getByRole('heading', { name: 'Refusé' })).toBeVisible();
   await shot(till, 'staff-05-refuse');
 
