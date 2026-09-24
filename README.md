@@ -12,7 +12,14 @@ Programme d'avantages Damascino : les collaborateurs des entreprises partenaires
 Le site affiche aux bénéficiaires et au personnel la page de téléchargement de l'application ; l'API refuse leur
 connexion depuis un navigateur. Détails : [docs/APPLICATION_MOBILE.md](docs/APPLICATION_MOBILE.md).
 
-## Manuel d'utilisation
+## Guide d'installation et manuel d'utilisation
+
+- [docs/manuel/GUIDE_INSTALLATION.md](docs/manuel/GUIDE_INSTALLATION.md) : mise en service pas à pas (environnement de
+  test sur Codespaces, production sur Oracle Cloud, installation de l'application sur les téléphones, premiers
+  réglages, recette, mises à jour, dépannage) ;
+- version PDF illustrée (installation + utilisation) :
+  [Damascino_Privileges_Installation_et_Utilisation.pdf](docs/manuel/Damascino_Privileges_Installation_et_Utilisation.pdf).
+
 
 [docs/manuel/MANUEL_UTILISATION.md](docs/manuel/MANUEL_UTILISATION.md) : guide pas à pas illustré pour l'administrateur,
 le personnel de caisse et les bénéficiaires. Captures régénérables sur une base vierge :
