@@ -1,0 +1,109 @@
+name: Application mobile (APK Android)
+
+# Builds the Android app and publishes it as a GitHub release (damascino-privileges.apk), the file the website's
+# "Télécharger pour Android" button points to. Runs on every change of the app, or by hand (Actions → Run workflow).
+#
+# Repository settings (Settings → Secrets and variables → Actions):
+#   variable APP_API_URL           public address of the site, e.g. https://privileges.damascino.tn (required for a
+#                                  production build; without it the app asks for the server address)
+#   variable APP_ALLOW_SERVER_CHANGE  1 = test build: the address can be changed in the app (Codespaces…)
+#   secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#                                  optional: signs the APK with your own key (required to publish updates on
+#                                  Google Play); otherwise the APK is signed with a test key.
+
+on:
+  push:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-apk.yml'
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "Adresse du site (vide = variable APP_API_URL)"
+        required: false
+      allow_server_change:
+        description: "Version de test : adresse du serveur modifiable dans l'app"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_NO_TELEMETRY: 1
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || vars.APP_API_URL }}
+      EXPO_PUBLIC_ALLOW_SERVER_CHANGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.allow_server_change && '1' || '0') || vars.APP_ALLOW_SERVER_CHANGE || '1' }}
+      GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install --clean
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android/app/release.keystore
+            cat >> android/gradle.properties <<PROPS
+          DP_UPLOAD_STORE_FILE=release.keystore
+          DP_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD
+          DP_UPLOAD_KEY_ALIAS=$KEY_ALIAS
+          DP_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD
+          PROPS
+            node ../.github/scripts/android-release-signing.mjs android/app/build.gradle
+            echo "APK signé avec la clé Damascino"
+          else
+            echo "::warning::Aucune clé de signature : APK signé avec une clé de test (installation directe uniquement)."
+          fi
+      - name: Build the APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+      - name: Collect
+        id: apk
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          cp android/app/build/outputs/apk/release/app-release.apk ../damascino-privileges.apk
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -la ../damascino-privileges.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: damascino-privileges-apk
+          path: damascino-privileges.apk
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v${{ steps.apk.outputs.version }}-${{ github.run_number }}
+          name: Damascino Privilèges ${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: damascino-privileges.apk
+          body: |
+            Application Android Damascino Privilèges (bénéficiaires et personnel de caisse).
+            Serveur : ${{ env.EXPO_PUBLIC_API_URL || 'à saisir dans l’application' }}
+            Installation : télécharger `damascino-privileges.apk` sur le téléphone, l'ouvrir et autoriser l'installation.

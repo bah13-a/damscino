@@ -36,9 +36,24 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
   e2e:
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, mobile]
     steps:
       - uses: actions/checkout@v4
       - name: Start the stack
@@ -53,13 +68,14 @@ jobs:
           exit 1
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
           cache-dependency-path: e2e/package-lock.json
-      - name: Run Playwright
+      - name: Run Playwright (website + mobile app through its web export)
         working-directory: e2e
         run: |
           npm ci
+          npm run build:app
           npx playwright install --with-deps chromium
           npx playwright test
       - uses: actions/upload-artifact@v4
