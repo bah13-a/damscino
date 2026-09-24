@@ -3,6 +3,9 @@ import { storage } from './storage';
 const SERVER_KEY = 'dp.server';
 const BUILT_IN = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
 
+/** Environment of the build: "test" (Codespace, demos) or "prod". */
+export const APP_ENV = process.env.EXPO_PUBLIC_APP_ENV === 'prod' ? 'prod' : 'test';
+
 /** Test builds may point the app to another server (a Codespace, a demo); production builds never. */
 export const SERVER_CHANGE_ALLOWED = process.env.EXPO_PUBLIC_ALLOW_SERVER_CHANGE === '1' || !BUILT_IN;
 

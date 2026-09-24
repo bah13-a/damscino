@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Logo, MotifBand, T } from './ui';
+import { APP_ENV } from '@/lib/config';
+import { EnvironmentBadge, Logo, MotifBand, T } from './ui';
 
 export function AuthHeader({ title, subtitle, back = true }: { title: string; subtitle?: string; back?: boolean }) {
   return (
@@ -12,6 +13,7 @@ export function AuthHeader({ title, subtitle, back = true }: { title: string; su
       )}
       <View style={styles.logo}>
         <Logo size="lg" />
+        <EnvironmentBadge env={APP_ENV} />
         <MotifBand opacity={0.3} tiles={5} />
       </View>
       <T variant="display" style={styles.title} accessibilityRole="header">

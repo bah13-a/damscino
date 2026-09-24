@@ -1,27 +1,30 @@
 import type { ExpoConfig } from 'expo/config';
 
 const NAVY = '#131F35';
+/** test = app "Privilèges TEST" installable next to the production app, pointing to the test server. */
+const TEST = (process.env.APP_ENV ?? 'test') !== 'prod';
+const PACKAGE = TEST ? 'tn.damascino.privileges.test' : 'tn.damascino.privileges';
 
 /**
  * Damascino Privilèges: the beneficiary and staff app. The API address is fixed at build time
  * (EXPO_PUBLIC_API_URL); test builds may let the user change it (EXPO_PUBLIC_ALLOW_SERVER_CHANGE=1).
  */
 const config: ExpoConfig = {
-  name: 'Damascino Privilèges',
+  name: TEST ? 'Privilèges TEST' : 'Damascino Privilèges',
   slug: 'damascino-privileges',
-  scheme: 'damascino',
+  scheme: TEST ? 'damascino-test' : 'damascino',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   backgroundColor: NAVY,
   ios: {
-    bundleIdentifier: 'tn.damascino.privileges',
+    bundleIdentifier: PACKAGE,
     supportsTablet: true,
     config: { usesNonExemptEncryption: false },
   },
   android: {
-    package: 'tn.damascino.privileges',
+    package: PACKAGE,
     versionCode: 1,
     adaptiveIcon: {
       backgroundColor: NAVY,

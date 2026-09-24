@@ -6,12 +6,24 @@
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_ALLOW_SERVER_CHANGE": "1" }
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "test",
+        "EXPO_PUBLIC_APP_ENV": "test",
+        "EXPO_PUBLIC_ALLOW_SERVER_CHANGE": "0"
+      }
     },
     "production": {
-      "android": { "buildType": "app-bundle" },
-      "env": { "EXPO_PUBLIC_ALLOW_SERVER_CHANGE": "0" }
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_ENV": "prod",
+        "EXPO_PUBLIC_APP_ENV": "prod",
+        "EXPO_PUBLIC_ALLOW_SERVER_CHANGE": "0"
+      }
     }
   },
   "submit": {

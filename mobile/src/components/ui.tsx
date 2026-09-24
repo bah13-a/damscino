@@ -51,6 +51,16 @@ export function MotifBand({ color = colors.white, opacity = 0.3, tiles = 8 }: { 
   );
 }
 
+/** Shown on the public screens of the test app so that it is never mistaken for the production one. */
+export function EnvironmentBadge({ env }: { env: 'test' | 'prod' }) {
+  if (env === 'prod') return null;
+  return (
+    <View style={styles.envBadge} accessibilityRole="text">
+      <Text style={styles.envBadgeText}>ENVIRONNEMENT DE TEST</Text>
+    </View>
+  );
+}
+
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
@@ -219,6 +229,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
   },
   alert: { borderRadius: radius.md, padding: 12 },
+  envBadge: { alignSelf: 'center', backgroundColor: '#F59E0B', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
+  envBadgeText: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 1.5, color: '#1F1300' },
   badge: { alignSelf: 'center', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
   badgeText: { fontFamily: fonts.semibold, fontSize: 13 },
 });

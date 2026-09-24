@@ -1,15 +1,18 @@
 name: Application mobile (APK Android)
 
-# Builds the Android app and publishes it as a GitHub release (damascino-privileges.apk), the file the website's
-# "Télécharger pour Android" button points to. Runs on every change of the app, or by hand (Actions → Run workflow).
+# Builds the Android app for one environment and publishes it as a GitHub release:
+#   test → app "Privilèges TEST" (tn.damascino.privileges.test), release android-test, file damascino-privileges-test.apk
+#   prod → app "Damascino Privilèges" (tn.damascino.privileges), release android-prod, file damascino-privileges.apk
+# The two apps can be installed side by side. The test app is rebuilt on every change of mobile/; the production
+# app only by hand: Actions → Application mobile (APK Android) → Run workflow → environnement « prod ».
 #
-# Repository settings (Settings → Secrets and variables → Actions):
-#   variable APP_API_URL           public address of the site, e.g. https://privileges.damascino.tn (required for a
-#                                  production build; without it the app asks for the server address)
-#   variable APP_ALLOW_SERVER_CHANGE  1 = the address can also be changed in the app (default 0: built-in only)
+# Settings → Environments → test / prod → Environment variables and secrets (created at the first run):
+#   variable APP_API_URL           address of the site of that environment (required for prod), e.g.
+#                                  https://privileges.damascino.tn
+#   variable APP_ALLOW_SERVER_CHANGE  1 = the address can also be changed in the app (never for prod)
 #   secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-#                                  optional: signs the APK with your own key (required to publish updates on
-#                                  Google Play); otherwise the APK is signed with a test key.
+#                                  signing key (strongly recommended for prod: required by Google Play, and updates
+#                                  must always be signed with the same key); otherwise a test key is used.
 
 on:
   push:
@@ -18,35 +21,57 @@ on:
       - '.github/workflows/mobile-apk.yml'
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Environnement'
+        type: choice
+        options: [test, prod]
+        default: test
       api_url:
-        description: "Adresse du site (vide = variable APP_API_URL)"
+        description: "Adresse du site (vide = variable APP_API_URL de l'environnement)"
         required: false
-      allow_server_change:
-        description: "Version de test : adresse du serveur modifiable dans l'app"
-        type: boolean
-        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: mobile-apk-${{ github.ref }}
+  group: mobile-apk-${{ inputs.environment || 'test' }}-${{ github.ref }}
   cancel-in-progress: true
+
+# address of the test server when the test environment has no APP_API_URL variable (current Codespace)
+env:
+  DEFAULT_TEST_API_URL: https://musical-goggles-7wqpvxv5jgq3pvqg-3000.app.github.dev
 
 jobs:
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment: ${{ inputs.environment || 'test' }}
     defaults:
       run:
         working-directory: mobile
     env:
       EXPO_NO_TELEMETRY: 1
-      # server built into the app (nothing to type on the phone); the repository variable APP_API_URL takes precedence
-      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || vars.APP_API_URL || 'https://musical-goggles-7wqpvxv5jgq3pvqg-3000.app.github.dev' }}
-      EXPO_PUBLIC_ALLOW_SERVER_CHANGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.allow_server_change && '1' || '0') || vars.APP_ALLOW_SERVER_CHANGE || '0' }}
+      APP_ENV: ${{ inputs.environment || 'test' }}
+      EXPO_PUBLIC_APP_ENV: ${{ inputs.environment || 'test' }}
       GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
     steps:
+      - name: Server of the environment
+        working-directory: ${{ github.workspace }}
+        env:
+          INPUT_URL: ${{ inputs.api_url }}
+          VAR_URL: ${{ vars.APP_API_URL }}
+          VAR_ALLOW: ${{ vars.APP_ALLOW_SERVER_CHANGE }}
+        run: |
+          URL="${INPUT_URL:-$VAR_URL}"
+          if [ "$APP_ENV" = "test" ]; then URL="${URL:-$DEFAULT_TEST_API_URL}"; ALLOW="${VAR_ALLOW:-0}"; else ALLOW=0; fi
+          if [ -z "$URL" ]; then
+            echo "::error::Définissez la variable APP_API_URL de l'environnement $APP_ENV (Settings → Environments → $APP_ENV)."
+            exit 1
+          fi
+          case "$URL" in https://*) ;; *) echo "::error::APP_API_URL doit commencer par https:// ($URL)"; exit 1 ;; esac
+          echo "EXPO_PUBLIC_API_URL=${URL%/}" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_ALLOW_SERVER_CHANGE=$ALLOW" >> "$GITHUB_ENV"
+          echo "Environnement $APP_ENV → serveur ${URL%/}"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -88,23 +113,28 @@ jobs:
       - name: Collect
         id: apk
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          cp android/app/build/outputs/apk/release/app-release.apk ../damascino-privileges.apk
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          ls -la ../damascino-privileges.apk
+          FILE=$([ "$APP_ENV" = "prod" ] && echo damascino-privileges.apk || echo damascino-privileges-test.apk)
+          cp android/app/build/outputs/apk/release/app-release.apk "../$FILE"
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          ls -la "../$FILE"
       - uses: actions/upload-artifact@v4
         with:
-          name: damascino-privileges-apk
-          path: damascino-privileges.apk
+          name: ${{ steps.apk.outputs.file }}
+          path: ${{ steps.apk.outputs.file }}
+      # one release per environment, replaced at each build: its download link never changes
       - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: app-v${{ steps.apk.outputs.version }}-${{ github.run_number }}
-          name: Damascino Privilèges ${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
+          tag_name: android-${{ env.APP_ENV }}
+          name: ${{ env.APP_ENV == 'prod' && 'Damascino Privilèges' || 'Privilèges TEST' }} ${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
           target_commitish: ${{ github.sha }}
-          make_latest: true
-          files: damascino-privileges.apk
+          prerelease: ${{ env.APP_ENV != 'prod' }}
+          make_latest: ${{ env.APP_ENV == 'prod' }}
+          files: ${{ steps.apk.outputs.file }}
+          overwrite_files: true
           body: |
-            Application Android Damascino Privilèges (bénéficiaires et personnel de caisse).
-            Serveur : ${{ env.EXPO_PUBLIC_API_URL || 'à saisir dans l’application' }}
-            Installation : télécharger `damascino-privileges.apk` sur le téléphone, l'ouvrir et autoriser l'installation.
+            Application Android Damascino Privilèges — environnement **${{ env.APP_ENV }}** (bénéficiaires et personnel de caisse).
+            Serveur : ${{ env.EXPO_PUBLIC_API_URL }}
+            Commit : ${{ github.sha }} · build ${{ github.run_number }}
+            Installation : télécharger `${{ steps.apk.outputs.file }}` sur le téléphone, l'ouvrir et autoriser l'installation.

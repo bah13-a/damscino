@@ -10,6 +10,9 @@ services:
     ports: !reset []
   frontend:
     ports: !reset []
+    build:
+      args:
+        NEXT_PUBLIC_ANDROID_APP_URL: ${ANDROID_APP_URL:-https://github.com/bah13-a/damscino/releases/download/android-prod/damascino-privileges.apk}
 
   caddy:
     image: caddy:2-alpine

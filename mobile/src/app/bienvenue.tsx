@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Logo, MotifBand, T } from '@/components/ui';
-import { SERVER_CHANGE_ALLOWED, server } from '@/lib/config';
+import { Button, EnvironmentBadge, Logo, MotifBand, T } from '@/components/ui';
+import { APP_ENV, SERVER_CHANGE_ALLOWED, server } from '@/lib/config';
 import { colors } from '@/lib/theme';
 
 /** Without a server address (test build), the address is asked first. */
@@ -16,6 +16,7 @@ export default function Welcome() {
     <View style={[styles.page, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.hero}>
         <Logo size="lg" />
+        <EnvironmentBadge env={APP_ENV} />
         <T style={styles.tagline}>Votre avantage Damascino, avec un QR code personnel renouvelé toutes les 30 secondes.</T>
         <MotifBand opacity={0.3} />
       </View>

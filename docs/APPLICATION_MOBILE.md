@@ -27,30 +27,49 @@ arrière.
 - Modules : `expo-camera` (lecture des QR), `expo-secure-store`, `expo-screen-capture`, `expo-brightness`,
   `expo-keep-awake`, `react-native-qrcode-svg`.
 - Même API que le site : l'application appelle `https://<adresse du site>/api/...`.
-- L'adresse du serveur est fixée à la compilation (`EXPO_PUBLIC_API_URL`). Une **version de test**
-  (`EXPO_PUBLIC_ALLOW_SERVER_CHANGE=1`) permet de la changer dans l'application (lien *Serveur : … · Modifier* sur
-  l'écran d'accueil), pratique avec un Codespace dont l'adresse change.
+- L'adresse du serveur est fixée à la compilation (`EXPO_PUBLIC_API_URL`), l'environnement par `APP_ENV`
+  (`test` / `prod`). En option (`APP_ALLOW_SERVER_CHANGE=1`, jamais en production), l'adresse peut aussi être changée
+  dans l'application (lien *Serveur : … · Modifier*).
 - `EXPO_PUBLIC_STAFF_IDLE_MINUTES` : déconnexion automatique du scanner (défaut 5 min).
+
+## Environnements test et production
+
+Deux applications distinctes, installables côte à côte sur le même téléphone, chacune reliée à **son** serveur
+(l'adresse est intégrée dans l'application : rien à saisir sur le téléphone) :
+
+| | Test | Production |
+|---|---|---|
+| Nom sur le téléphone | **Privilèges TEST** (bandeau orange « Environnement de test ») | **Damascino Privilèges** |
+| Identifiant Android | `tn.damascino.privileges.test` | `tn.damascino.privileges` |
+| Serveur | Codespace (ou serveur de recette) | Serveur de production (ex. `https://privileges.damascino.tn`) |
+| Compilation | automatique à chaque modification de `mobile/` | à la demande (bouton *Run workflow*) |
+| Téléchargement | `…/releases/download/android-test/damascino-privileges-test.apk` | `…/releases/download/android-prod/damascino-privileges.apk` |
+| Lien du site | `docker-compose.yml` (Codespace) | `docker-compose.prod.yml` (serveur de production) |
 
 ## Obtenir l'APK Android (gratuit, GitHub Actions)
 
-Le workflow **Application mobile (APK Android)** (`.github/workflows/mobile-apk.yml`) compile l'application à chaque
-modification de `mobile/` et la publie comme **release GitHub** (`damascino-privileges.apk`). Le bouton
-*Télécharger pour Android* du site pointe vers
-`https://github.com/bah13-a/damscino/releases/latest/download/damascino-privileges.apk`.
+Le workflow **Application mobile (APK Android)** (`.github/workflows/mobile-apk.yml`) compile l'application et la
+publie comme **release GitHub** de son environnement (`android-test` ou `android-prod`, remplacée à chaque
+compilation : le lien de téléchargement ne change jamais). Compter 25 à 30 minutes.
 
-1. GitHub → **Settings → Secrets and variables → Actions → Variables** :
-   - `APP_API_URL` = adresse publique du site (ex. `https://privileges.damascino.tn` ou l'URL du Codespace) ;
-   - `APP_ALLOW_SERVER_CHANGE` = `1` pour une version de test, `0` pour la version finale.
-2. **Actions → Application mobile (APK Android) → Run workflow** (ou pousser une modification de `mobile/`).
-3. Après ~15 à 25 min, l'APK est dans **Releases** (et dans les *artifacts* du run).
+**Réglages** : GitHub → **Settings → Environments** → `test` et `prod` (créés automatiquement au premier lancement) :
+- variable `APP_API_URL` = adresse du site de l'environnement, en `https://` ;
+  - *test* : facultative (par défaut, l'adresse du Codespace actuel, inscrite dans le workflow) — à renseigner si
+    vous changez de Codespace ;
+  - *prod* : **obligatoire** (ex. `https://privileges.damascino.tn`) ;
+- secrets de signature (voir plus bas), indispensables pour la production.
+
+**Version test** : se recompile seule à chaque modification de l'application ; ou **Actions → Application mobile
+(APK Android) → Run workflow → environnement `test`**.
+
+**Version production** : **Actions → Application mobile (APK Android) → Run workflow → environnement `prod`**.
 
 > **Dépôt privé :** les fichiers des releases d'un dépôt privé ne sont pas téléchargeables sans compte GitHub.
 > Hébergez alors l'APK ailleurs (Google Drive, serveur Damascino, Play Store) et indiquez son adresse au site :
 > variable `NEXT_PUBLIC_ANDROID_APP_URL` à la construction du frontend (avec Docker Compose :
 > `ANDROID_APP_URL=https://… docker compose up -d --build frontend`, idem `IOS_APP_URL`).
 
-**Installation sur un téléphone Android :** ouvrir le lien, télécharger `damascino-privileges.apk`, l'ouvrir et
+**Installation sur un téléphone Android :** ouvrir le lien, télécharger l'APK, l'ouvrir et
 autoriser *« Installer des applications inconnues »* pour le navigateur la première fois.
 
 ### Signature
