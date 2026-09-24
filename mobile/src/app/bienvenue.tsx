@@ -5,6 +5,11 @@ import { Button, Logo, MotifBand, T } from '@/components/ui';
 import { SERVER_CHANGE_ALLOWED, server } from '@/lib/config';
 import { colors } from '@/lib/theme';
 
+/** Without a server address (test build), the address is asked first. */
+function open(espace: 'beneficiary' | 'staff') {
+  router.push({ pathname: server() ? '/connexion' : '/serveur', params: { espace } });
+}
+
 export default function Welcome() {
   const insets = useSafeAreaInsets();
   return (
@@ -15,8 +20,8 @@ export default function Welcome() {
         <MotifBand opacity={0.3} />
       </View>
       <View style={styles.actions}>
-        <Button title="Je suis bénéficiaire" variant="light" large onPress={() => router.push({ pathname: '/connexion', params: { espace: 'beneficiary' } })} />
-        <Button title="Personnel Damascino" variant="ghost" large onPress={() => router.push({ pathname: '/connexion', params: { espace: 'staff' } })} />
+        <Button title="Je suis bénéficiaire" variant="light" large onPress={() => open('beneficiary')} />
+        <Button title="Personnel Damascino" variant="ghost" large onPress={() => open('staff')} />
         {SERVER_CHANGE_ALLOWED && (
           <T variant="small" style={styles.server} onPress={() => router.push('/serveur')} accessibilityRole="link">
             Serveur : {server() || 'non configuré'} · Modifier

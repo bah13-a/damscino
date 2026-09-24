@@ -20,10 +20,21 @@ export function server(): string {
   return current;
 }
 
+/** Plain HTTP is blocked by Android and iOS: the address must be HTTPS (Codespaces, Caddy…). */
+export function checkServerAddress(url: string): string | null {
+  if (!/^https?:\/\/[^/\s]+/i.test(url)) return 'Adresse invalide. Exemple : https://mon-codespace-3000.app.github.dev';
+  if (/^http:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/i.test(url)) {
+    return 'L’adresse doit commencer par https:// (les téléphones bloquent http://).';
+  }
+  return null;
+}
+
+/** Keeps only the site address, even if a page link was pasted (…/admin/connexion). */
 export function normalizeServer(value: string): string {
-  let url = value.trim().replace(/\/+$/, '');
+  let url = value.trim();
   if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
-  return url;
+  const match = /^(https?:\/\/[^/?#\s]+)/i.exec(url);
+  return match ? match[1].toLowerCase() : url.replace(/\/+$/, '');
 }
 
 export async function saveServer(value: string): Promise<void> {

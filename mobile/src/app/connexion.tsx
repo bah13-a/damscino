@@ -2,8 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { AuthHeader } from '@/components/AuthHeader';
 import { Screen } from '@/components/Screen';
-import { Alert, Button, Card, Field } from '@/components/ui';
+import { Alert, Button, Card, Field, T } from '@/components/ui';
 import { api, errorMessage, login } from '@/lib/api';
+import { SERVER_CHANGE_ALLOWED, server } from '@/lib/config';
 import type { Space } from '@/lib/types';
 import { homeOf } from '@/lib/useSession';
 
@@ -87,6 +88,16 @@ export default function LoginScreen() {
           onSubmitEditing={submit}
         />
         <Button title="Se connecter" large loading={loading} disabled={!username || !password} onPress={submit} />
+        {SERVER_CHANGE_ALLOWED && (
+          <T
+            variant="small"
+            style={{ textAlign: 'center', textDecorationLine: 'underline' }}
+            accessibilityRole="link"
+            onPress={() => router.push({ pathname: '/serveur', params: { espace: space } })}
+          >
+            Serveur : {server() || 'non configuré'} · Modifier
+          </T>
+        )}
       </Card>
     </Screen>
   );

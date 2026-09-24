@@ -6,7 +6,7 @@ name: Application mobile (APK Android)
 # Repository settings (Settings → Secrets and variables → Actions):
 #   variable APP_API_URL           public address of the site, e.g. https://privileges.damascino.tn (required for a
 #                                  production build; without it the app asks for the server address)
-#   variable APP_ALLOW_SERVER_CHANGE  1 = test build: the address can be changed in the app (Codespaces…)
+#   variable APP_ALLOW_SERVER_CHANGE  1 = the address can also be changed in the app (default 0: built-in only)
 #   secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 #                                  optional: signs the APK with your own key (required to publish updates on
 #                                  Google Play); otherwise the APK is signed with a test key.
@@ -24,7 +24,7 @@ on:
       allow_server_change:
         description: "Version de test : adresse du serveur modifiable dans l'app"
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
@@ -42,8 +42,9 @@ jobs:
         working-directory: mobile
     env:
       EXPO_NO_TELEMETRY: 1
-      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || vars.APP_API_URL }}
-      EXPO_PUBLIC_ALLOW_SERVER_CHANGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.allow_server_change && '1' || '0') || vars.APP_ALLOW_SERVER_CHANGE || '1' }}
+      # server built into the app (nothing to type on the phone); the repository variable APP_API_URL takes precedence
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || vars.APP_API_URL || 'https://musical-goggles-7wqpvxv5jgq3pvqg-3000.app.github.dev' }}
+      EXPO_PUBLIC_ALLOW_SERVER_CHANGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.allow_server_change && '1' || '0') || vars.APP_ALLOW_SERVER_CHANGE || '0' }}
       GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
     steps:
       - uses: actions/checkout@v4

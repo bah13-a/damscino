@@ -1,5 +1,8 @@
 import Constants from 'expo-constants';
 import { server } from './config';
+
+const BAD_SERVER_MESSAGE =
+  "Le serveur ne répond pas comme prévu : vérifiez son adresse (Serveur · Modifier). Avec un Codespace, le port 3000 doit être en visibilité Public.";
 import { clearSession, getSession, saveSession } from './session';
 import { SPACE_ROLE, type AuthResult, type Space } from './types';
 
@@ -24,7 +27,13 @@ export function onSessionExpired(handler: (reason: ExpiryReason) => void) {
   expiryHandler = handler;
 }
 
+/** An HTML page instead of the API: wrong address, or a private Codespace port answering with GitHub's login page. */
+function isHtml(response: Response) {
+  return (response.headers.get('content-type') ?? '').includes('text/html');
+}
+
 async function parseError(response: Response): Promise<ApiError> {
+  if (isHtml(response)) return new ApiError(response.status, 'BAD_SERVER', BAD_SERVER_MESSAGE);
   try {
     const data = await response.json();
     return new ApiError(response.status, data.code ?? 'ERROR', data.message ?? 'Erreur', data.fields ?? {});
@@ -37,6 +46,7 @@ async function parseError(response: Response): Promise<ApiError> {
 }
 
 function url(path: string) {
+  if (!server()) throw new ApiError(0, 'NO_SERVER', 'Adresse du serveur non configurée : touchez « Serveur · Modifier ».');
   return `${server()}${path}`;
 }
 
@@ -89,7 +99,7 @@ async function send(path: string, method: string, body: unknown, authenticated: 
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown; anonymous?: boolean } = {}): Promise<T> {
   const response = await send(path, options.method ?? 'GET', options.body, !options.anonymous, true);
-  if (!response.ok) throw await parseError(response);
+  if (!response.ok || isHtml(response)) throw await parseError(response);
   if (response.status === 204) return undefined as T;
   const type = response.headers.get('content-type') ?? '';
   return (type.includes('json') ? await response.json() : undefined) as T;
@@ -118,6 +128,8 @@ export async function logout() {
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
-  if (error instanceof TypeError) return 'Connexion impossible. Vérifiez votre réseau.';
+  if (error instanceof TypeError) {
+    return `Connexion impossible au serveur ${server() || '(adresse non configurée)'}. Vérifiez votre connexion internet et l'adresse du serveur (avec un Codespace : démarré, port 3000 en Public).`;
+  }
   return 'Une erreur est survenue.';
 }
