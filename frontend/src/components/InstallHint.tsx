@@ -45,7 +45,7 @@ export function InstallHint() {
   };
 
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-gold-500/40 bg-gold-500/10 p-4 text-sm">
+    <div className="flex items-start gap-3 rounded-2xl border border-line bg-brand-50 p-4 text-sm">
       <span aria-hidden="true" className="text-xl">
         📲
       </span>

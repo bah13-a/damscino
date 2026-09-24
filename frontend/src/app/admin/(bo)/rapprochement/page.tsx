@@ -41,7 +41,7 @@ function Kpi({ label, value, tone }: { label: string; value: string | number; to
   return (
     <Card className="!p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-1 font-display text-2xl font-bold ${color}`}>{value}</p>
+      <p className={`mt-1 font-display text-2xl font-semibold ${color}`}>{value}</p>
     </Card>
   );
 }
@@ -118,7 +118,7 @@ export default function ReconciliationPage() {
       {error && <Alert>{error}</Alert>}
 
       <Card>
-        <h2 className="font-display text-lg font-bold">1. Export des ventes de la caisse</h2>
+        <h2 className="font-display text-lg font-semibold">1. Export des ventes de la caisse</h2>
         <p className="mt-1 text-sm text-muted">
           Fichier Excel ou CSV exporté depuis la caisse (une ligne par ticket ou par remise), sur un ou plusieurs jours.
         </p>
@@ -143,7 +143,7 @@ export default function ReconciliationPage() {
 
       {inspection && mapping && (
         <Card className="mt-4">
-          <h2 className="font-display text-lg font-bold">2. Colonnes de l&apos;export</h2>
+          <h2 className="font-display text-lg font-semibold">2. Colonnes de l&apos;export</h2>
           <p className="mt-1 text-sm text-muted">Colonnes reconnues automatiquement : vérifiez-les avant de lancer la comparaison.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {FIELDS.map((field) => (
@@ -209,7 +209,7 @@ export default function ReconciliationPage() {
       {report && (
         <div className="mt-6 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-xl font-bold">
+            <h2 className="font-display text-xl font-semibold">
               Résultat du {shortDate(report.from)} au {shortDate(report.to)}
             </h2>
             <Button variant="secondary" onClick={exportCsv}>
@@ -227,7 +227,7 @@ export default function ReconciliationPage() {
           </div>
 
           <section>
-            <h3 className="mb-1 font-display text-lg font-bold text-red-700">Remises en caisse sans passage validé</h3>
+            <h3 className="mb-1 font-display text-lg font-semibold text-red-700">Remises en caisse sans passage validé</h3>
             <p className="mb-3 text-sm text-muted">Remise « {discountLabel} » saisie sans QR code validé sur la plateforme : à vérifier avec le caissier.</p>
             {report.discountsWithoutPassage.length === 0 ? (
               <Empty>Aucune.</Empty>
@@ -248,7 +248,7 @@ export default function ReconciliationPage() {
           </section>
 
           <section>
-            <h3 className="mb-1 font-display text-lg font-bold text-amber-700">Passages validés sans remise en caisse</h3>
+            <h3 className="mb-1 font-display text-lg font-semibold text-amber-700">Passages validés sans remise en caisse</h3>
             <p className="mb-3 text-sm text-muted">QR code validé sur la tablette mais aucune remise correspondante dans la caisse (oubli, ou remise saisie sous un autre nom).</p>
             {report.passagesWithoutDiscount.length === 0 ? (
               <Empty>Aucun.</Empty>
@@ -270,7 +270,7 @@ export default function ReconciliationPage() {
 
           {gaps.length > 0 && (
             <section>
-              <h3 className="mb-3 font-display text-lg font-bold text-amber-700">Écarts de montant</h3>
+              <h3 className="mb-3 font-display text-lg font-semibold text-amber-700">Écarts de montant</h3>
               <Table head={['Date et heure', 'Ticket', 'Bénéficiaire', 'Remise caisse', 'Remise validée', 'Écart']}>
                 {gaps.map((m) => (
                   <tr key={m.passage.id}>
@@ -287,7 +287,7 @@ export default function ReconciliationPage() {
           )}
 
           <details>
-            <summary className="cursor-pointer font-display text-lg font-bold">Rapprochés ({report.matched.length})</summary>
+            <summary className="cursor-pointer font-display text-lg font-semibold">Rapprochés ({report.matched.length})</summary>
             <div className="mt-3">
               <Table head={['Date et heure', 'Ticket', 'Bénéficiaire', 'Remise caisse', 'Rapproché par']}>
                 {report.matched.map((m) => (
@@ -307,7 +307,7 @@ export default function ReconciliationPage() {
 
           {report.rejectedRows.length > 0 && (
             <details>
-              <summary className="cursor-pointer font-display text-lg font-bold">Lignes illisibles ({report.rejectedRows.length})</summary>
+              <summary className="cursor-pointer font-display text-lg font-semibold">Lignes illisibles ({report.rejectedRows.length})</summary>
               <ul className="mt-2 space-y-1 text-sm text-muted">
                 {report.rejectedRows.slice(0, 100).map((r) => (
                   <li key={r.line}>

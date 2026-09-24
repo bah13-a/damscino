@@ -66,9 +66,9 @@ export default function BeneficiarySpacePage() {
             Déconnexion
           </button>
         </div>
-        <div className="mx-auto mt-6 max-w-md">
+        <div className="mx-auto mt-8 max-w-md">
           <p className="text-sm text-white/70">Bonjour</p>
-          <p className="font-display text-2xl font-bold">{dashboard?.fullName ?? session.displayName}</p>
+          <p className="font-display text-2xl font-semibold">{dashboard?.fullName ?? session.displayName}</p>
           {dashboard?.partnerName && <p className="text-sm text-gold-400">{dashboard.partnerName}</p>}
         </div>
       </header>
@@ -86,7 +86,7 @@ export default function BeneficiarySpacePage() {
               <Badge tone={AVAILABILITY_TONE[dashboard.availability]}>{dashboard.availabilityMessage}</Badge>
               {dashboard.discountPercent !== null && (
                 <>
-                  <p className="mt-4 font-display text-5xl font-bold text-brand-700">−{percent(dashboard.discountPercent)}</p>
+                  <p className="mt-4 font-display text-5xl font-semibold text-brand-700">−{percent(dashboard.discountPercent)}</p>
                   <p className="mt-1 text-sm text-muted">
                     sur {dashboard.usagesPerPeriod > 1 ? `${dashboard.usagesPerPeriod} plats` : 'un plat'} éligible par{' '}
                     {PERIOD_LABEL[dashboard.usagePeriod ?? 'DAY']}
@@ -120,7 +120,7 @@ export default function BeneficiarySpacePage() {
             <InstallHint />
 
             <Card>
-              <h2 className="font-display text-lg font-bold">Mes passages</h2>
+              <h2 className="font-display text-lg font-semibold">Mes passages</h2>
               {dashboard.history.length === 0 ? (
                 <p className="mt-2 text-sm text-muted">Aucun passage pour le moment.</p>
               ) : (

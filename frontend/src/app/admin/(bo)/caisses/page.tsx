@@ -63,7 +63,7 @@ function Terminals() {
 
   return (
     <section>
-      <h2 className="mb-1 font-display text-xl font-bold">Postes de caisse</h2>
+      <h2 className="mb-1 font-display text-xl font-semibold">Postes de caisse</h2>
       <p className="mb-4 text-sm text-muted">
         Chaque caisse connectée utilise sa propre clé d&apos;API (en-tête <code className="font-mono">X-Api-Key</code>) : elle
         apparaît dans le journal des passages et peut être révoquée à tout moment.
@@ -163,7 +163,7 @@ function Products() {
 
   return (
     <section>
-      <h2 className="mb-1 font-display text-xl font-bold">Articles de la caisse</h2>
+      <h2 className="mb-1 font-display text-xl font-semibold">Articles de la caisse</h2>
       <p className="mb-4 text-sm text-muted">
         Si la caisse n&apos;envoie pas la catégorie de chaque ligne, cette table indique à quelle catégorie Damascino correspond
         chaque référence d&apos;article (ex. <code className="font-mono">KEB-AZM</code> → Plats). Import CSV :{' '}
@@ -251,7 +251,7 @@ function AssistedDiscountSettings() {
 
   return (
     <section>
-      <h2 className="mb-1 font-display text-xl font-bold">Remise saisie dans la caisse</h2>
+      <h2 className="mb-1 font-display text-xl font-semibold">Remise saisie dans la caisse</h2>
       <p className="mb-4 text-sm text-muted">
         Le caissier valide le QR code avec la tablette « Espace personnel », puis applique la remise dans la rubrique{' '}
         <strong>Remise</strong> de la caisse existante. La tablette lui indique exactement quoi saisir, et le{' '}

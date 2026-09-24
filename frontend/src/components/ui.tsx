@@ -8,11 +8,11 @@ const cx = (...classes: (string | false | null | undefined)[]) => classes.filter
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-brand-700 text-white hover:bg-brand-800 dark:text-canvas',
+  primary: 'bg-brand-700 text-white hover:bg-brand-600',
   secondary: 'border border-line bg-surface text-ink hover:bg-canvas',
   ghost: 'text-brand-700 hover:bg-brand-50',
   danger: 'bg-red-700 text-white hover:bg-red-800',
-  gold: 'bg-gold-500 text-brand-900 hover:bg-gold-400',
+  gold: 'bg-white text-brand-700 hover:bg-brand-50',
 };
 
 export function Button({
@@ -29,7 +29,7 @@ export function Button({
       {...props}
       disabled={disabled || loading}
       className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
         size === 'sm' && 'px-3 py-1.5 text-sm',
         size === 'md' && 'px-4 py-2.5 text-sm',
         size === 'lg' && 'px-6 py-4 text-base',
@@ -170,7 +170,7 @@ export function Modal({
         )}
       >
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="font-display text-xl font-bold">{title}</h2>
+          <h2 className="font-display text-xl font-semibold">{title}</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-canvas" aria-label="Fermer">
             ✕
           </button>
@@ -185,7 +185,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">{title}</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -233,17 +233,29 @@ export function Pagination({ page, totalPages, onChange }: { page: number; total
   );
 }
 
-export function Logo({ light = false }: { light?: boolean }) {
+/**
+ * Official Damascino logo (wordmark, descriptor and chevron motif) followed by the programme name.
+ * White version on bleu nuit, bleu nuit version on light backgrounds (charte graphique §2).
+ */
+export function Logo({ light = false, size = 'md' }: { light?: boolean; size?: 'sm' | 'md' | 'lg' }) {
+  const height = size === 'lg' ? 'h-16' : size === 'sm' ? 'h-9' : 'h-11';
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icons/icon.svg" alt="" className="h-9 w-9 rounded-lg" />
-      <div className="leading-tight">
-        <div className={cx('font-display text-lg font-bold', light ? 'text-white' : 'text-brand-700')}>Damascino</div>
-        <div className={cx('text-[11px] font-semibold uppercase tracking-[0.2em]', light ? 'text-gold-400' : 'text-gold-500')}>
-          Privilèges
-        </div>
-      </div>
+      <img src={light ? '/brand/logo-white.png' : '/brand/logo-navy.png'} alt="damascino — oriental kitchen and coffee" className={cx(height, 'w-auto')} />
+      <span
+        className={cx(
+          'border-l pl-3 font-display text-[11px] font-semibold uppercase tracking-[0.22em]',
+          light ? 'border-white/25 text-gold-400' : 'border-line text-gold-500',
+        )}
+      >
+        Privilèges
+      </span>
     </div>
   );
+}
+
+/** Chevron motif used as a band or separator (charte §6: border, band, never dominant). */
+export function MotifBand({ tone = 'white', className }: { tone?: 'white' | 'navy' | 'sand'; className?: string }) {
+  return <div aria-hidden="true" className={cx('motif-band', `motif-${tone}`, className)} />;
 }

@@ -62,7 +62,7 @@ export default function PartnerDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card>
-          <h2 className="font-display text-lg font-bold">Convention</h2>
+          <h2 className="font-display text-lg font-semibold">Convention</h2>
           <div className="mt-2">
             {!p.active ? <Badge tone="danger">Partenaire inactif</Badge> : p.conventionRunning ? <Badge tone="success">En cours</Badge> : <Badge tone="warning">Hors période</Badge>}
           </div>
@@ -81,12 +81,12 @@ export default function PartnerDetailPage() {
         </Card>
         <Card>
           <div className="flex items-start justify-between">
-            <h2 className="font-display text-lg font-bold">Avantage</h2>
+            <h2 className="font-display text-lg font-semibold">Avantage</h2>
             <Button size="sm" variant="ghost" onClick={() => setEditing('rule')} disabled={!categories.data}>
               Modifier
             </Button>
           </div>
-          <p className="mt-2 font-display text-3xl font-bold text-brand-700">−{percent(p.discountPercent)}</p>
+          <p className="mt-2 font-display text-3xl font-semibold text-brand-700">−{percent(p.discountPercent)}</p>
           <p className="text-sm">
             {p.usagesPerPeriod} utilisation(s) par {PERIOD_LABEL[p.usagePeriod]}
           </p>
@@ -96,7 +96,7 @@ export default function PartnerDetailPage() {
           )}
         </Card>
         <Card>
-          <h2 className="font-display text-lg font-bold">Lien d&apos;activation</h2>
+          <h2 className="font-display text-lg font-semibold">Lien d&apos;activation</h2>
           <p className="mt-1 text-sm text-muted">À partager avec le partenaire : page de connexion à son nom.</p>
           <p className="mt-3 break-all rounded-lg bg-canvas p-2 font-mono text-xs">{activationLink}</p>
           <Button
@@ -124,7 +124,7 @@ export default function PartnerDetailPage() {
         />
       </div>
 
-      <h2 className="mb-3 mt-8 font-display text-xl font-bold">Bénéficiaires</h2>
+      <h2 className="mb-3 mt-8 font-display text-xl font-semibold">Bénéficiaires</h2>
       <BeneficiaryTable partners={partners.data ?? [p]} partnerId={p.id} refreshKey={refreshKey} />
 
       <Modal open={editing === 'profile'} title="Modifier le partenaire" onClose={() => setEditing(null)}>

@@ -62,7 +62,7 @@ export default function CategoriesPage() {
         </Card>
         <Card>
           <form onSubmit={add} className="space-y-4">
-            <h2 className="font-display text-lg font-bold">Ajouter une catégorie</h2>
+            <h2 className="font-display text-lg font-semibold">Ajouter une catégorie</h2>
             <Field label="Libellé" required value={label} onChange={(e) => setLabel(e.target.value)} placeholder="ex. Grillades" />
             <Button type="submit" loading={saving}>
               Ajouter

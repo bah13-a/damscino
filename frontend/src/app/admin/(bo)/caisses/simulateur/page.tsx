@@ -277,7 +277,7 @@ export default function TillSimulatorPage() {
           {preview && (
             <Card className={valid ? 'border-emerald-500' : 'border-red-500'}>
               <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg font-bold">Ticket {ticketId}</h2>
+                <h2 className="font-display text-lg font-semibold">Ticket {ticketId}</h2>
                 {valid ? <Badge tone="success">Avantage valide</Badge> : <Badge tone="danger">Refusé</Badge>}
               </div>
               {preview.beneficiary && (
@@ -307,7 +307,7 @@ export default function TillSimulatorPage() {
             </Card>
           )}
           <Card>
-            <h2 className="font-display text-lg font-bold">Échanges avec l&apos;API</h2>
+            <h2 className="font-display text-lg font-semibold">Échanges avec l&apos;API</h2>
             {exchanges.length === 0 && <p className="mt-2 text-sm text-muted">Les requêtes et réponses apparaîtront ici.</p>}
             <ol className="mt-3 space-y-3">
               {exchanges.map((exchange, index) => (

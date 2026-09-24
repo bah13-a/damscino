@@ -13,7 +13,7 @@ function Kpi({ label, value, hint }: { label: string; value: string | number; hi
   return (
     <Card className="!p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 font-display text-3xl font-bold text-ink">{value}</p>
+      <p className="mt-1 font-display text-3xl font-semibold text-ink">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </Card>
   );
@@ -56,14 +56,14 @@ export default function AdminDashboardPage() {
 
           <Card>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-lg font-bold">Passages par jour</h2>
+              <h2 className="font-display text-lg font-semibold">Passages par jour</h2>
               <ExportButtons path={`/api/reporting/statistics/export${qs}${qs ? '&' : '?'}table=days`} name="statistiques-par-jour" label="" />
             </div>
             <DailyChart days={stats.data!.byDay} from={filters.from} to={filters.to} />
           </Card>
 
           <div>
-            <h2 className="mb-3 font-display text-lg font-bold">Par partenaire</h2>
+            <h2 className="mb-3 font-display text-lg font-semibold">Par partenaire</h2>
             <Table head={['Partenaire', 'Autorisés', 'Activés', 'Actifs', 'Passages', 'Remises']}>
               {stats.data!.byPartner.map((p) => (
                 <tr key={p.partnerId}>

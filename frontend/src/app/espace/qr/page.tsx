@@ -101,7 +101,7 @@ export default function QrPage() {
         {validated ? (
           <Card className="text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-4xl text-emerald-700">✓</div>
-            <h1 className="mt-4 font-display text-2xl font-bold text-ink">Avantage utilisé</h1>
+            <h1 className="mt-4 font-display text-2xl font-semibold text-ink">Avantage utilisé</h1>
             <p className="mt-2 text-muted">
               {lastPassage
                 ? `Remise de ${percent(lastPassage.discountPercent)}${lastPassage.discountAmount !== null ? ` (${dt(lastPassage.discountAmount)})` : ''} appliquée.`
@@ -121,7 +121,7 @@ export default function QrPage() {
           </Card>
         ) : (
           <Card className="text-center">
-            <p className="font-display text-xl font-bold text-ink">{dashboard?.fullName ?? session.displayName}</p>
+            <p className="font-display text-xl font-semibold text-ink">{dashboard?.fullName ?? session.displayName}</p>
             {dashboard?.partnerName && <p className="text-sm text-muted">{dashboard.partnerName}</p>}
             <div className="relative mx-auto mt-4 flex aspect-square w-full max-w-[280px] items-center justify-center rounded-2xl bg-white p-3">
               {qr ? (

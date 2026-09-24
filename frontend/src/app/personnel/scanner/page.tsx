@@ -123,11 +123,11 @@ export default function ScannerPage() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-canvas">
-      <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3">
-        <Logo />
+      <header className="flex items-center justify-between bg-brand-700 px-4 py-3 text-white">
+        <Logo light size="sm" />
         <div className="text-right text-sm">
           <p className="font-semibold">{session.displayName}</p>
-          <button onClick={signOut} className="text-muted underline">
+          <button onClick={signOut} className="text-white/70 underline">
             Déconnexion
           </button>
         </div>
@@ -138,7 +138,7 @@ export default function ScannerPage() {
 
         {step.kind === 'scan' && (
           <>
-            <h1 className="font-display text-xl font-bold">Scanner le QR code du client</h1>
+            <h1 className="font-display text-xl font-semibold">Scanner le QR code du client</h1>
             <QrScanner active onScan={verify} />
             <details className="rounded-xl border border-line bg-surface p-3 text-sm">
               <summary className="cursor-pointer text-muted">Saisie manuelle du code</summary>

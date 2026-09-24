@@ -1,14 +1,14 @@
 import Link from 'next/link';
-import { Logo } from '@/components/ui';
+import { Logo, MotifBand } from '@/components/ui';
 
 export default function HomePage() {
   return (
     <main className="bg-damask flex min-h-dvh flex-col px-4 py-8 text-white">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <Logo light />
+        <Logo light size="lg" />
         <div className="flex flex-1 flex-col justify-center py-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gold-400">Programme partenaires</p>
-          <h1 className="mt-3 font-display text-4xl font-bold leading-tight">
+          <p className="font-display text-sm font-medium uppercase tracking-[0.25em] text-gold-400">Programme partenaires</p>
+          <h1 className="mt-3 font-display text-4xl font-semibold leading-tight">
             −20 % sur votre plat,
             <br />
             chaque jour.
@@ -19,11 +19,12 @@ export default function HomePage() {
           </p>
           <Link
             href="/connexion"
-            className="mt-8 inline-flex items-center justify-center rounded-xl bg-gold-500 px-6 py-4 font-semibold text-brand-900 transition hover:bg-gold-400"
+            className="mt-8 inline-flex items-center justify-center rounded-xl bg-white px-6 py-4 font-semibold text-brand-700 transition hover:bg-brand-50"
           >
             Accéder à mon avantage
           </Link>
         </div>
+        <MotifBand tone="white" className="mb-6 opacity-30" />
         <nav className="flex justify-center gap-6 pb-safe text-sm text-white/70">
           <Link href="/personnel" className="hover:text-white">
             Espace personnel
