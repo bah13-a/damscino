@@ -1,0 +1,30 @@
+# Server overlay: HTTPS with automatic Let's Encrypt certificates, only ports 80/443 exposed.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Required in .env: DOMAIN (e.g. damascino.duckdns.org or 1-2-3-4.sslip.io), secrets (see infra/vps/deploy.sh)
+services:
+  postgres:
+    ports: !reset []
+  rabbitmq:
+    ports: !reset []
+  gateway:
+    ports: !reset []
+  frontend:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [frontend]
+
+volumes:
+  caddy-data:
+  caddy-config:

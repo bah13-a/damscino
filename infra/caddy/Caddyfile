@@ -1,0 +1,9 @@
+# HTTPS in front of the PWA (the camera of the staff scanner requires HTTPS)
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy frontend:3000
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

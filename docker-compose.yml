@@ -1,5 +1,11 @@
 # Local stack: docker compose up --build   →   http://localhost:3000
 # (admin / Damascino2026! at first login, password change forced)
+# Server with HTTPS: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# (see docs/DEPLOIEMENT_GRATUIT.md)
+
+# Small heap per JVM: the whole stack fits in ~3 GB (free Codespace, Oracle Always Free VM, laptop)
+x-java-opts: &java-opts "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k"
+
 x-backend-env: &backend-env
   DB_HOST: postgres
   DB_PORT: 5432
@@ -8,10 +14,12 @@ x-backend-env: &backend-env
   DB_PASSWORD: ${DB_PASSWORD:-damascino}
   RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
   JWT_SECRET: ${JWT_SECRET:-local-jwt-secret-change-me-please}
+  JAVA_OPTS: *java-opts
   TZ: Africa/Tunis
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: damascino
@@ -27,6 +35,7 @@ services:
       retries: 20
 
   rabbitmq:
+    restart: unless-stopped
     image: rabbitmq:3.13-management-alpine
     ports:
       - "5672:5672"
@@ -37,6 +46,7 @@ services:
       retries: 20
 
   identity-service:
+    restart: unless-stopped
     build: { context: ./backend, dockerfile: identity-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -45,6 +55,7 @@ services:
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 
   partner-service:
+    restart: unless-stopped
     build: { context: ./backend, dockerfile: partner-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -52,6 +63,7 @@ services:
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 
   privilege-service:
+    restart: unless-stopped
     build: { context: ./backend, dockerfile: privilege-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -59,24 +71,28 @@ services:
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 
   reporting-service:
+    restart: unless-stopped
     build: { context: ./backend, dockerfile: reporting-service/Dockerfile }
     environment:
       <<: *backend-env
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 
   gateway:
+    restart: unless-stopped
     build: { context: ./backend, dockerfile: gateway/Dockerfile }
     environment:
       IDENTITY_URL: http://identity-service:8081
       PARTNER_URL: http://partner-service:8082
       PRIVILEGE_URL: http://privilege-service:8083
       REPORTING_URL: http://reporting-service:8084
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: ${PUBLIC_URL:-http://localhost:3000}
+      JAVA_OPTS: *java-opts
     ports:
       - "8080:8080"
     depends_on: [identity-service, partner-service, privilege-service, reporting-service]
 
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       args:

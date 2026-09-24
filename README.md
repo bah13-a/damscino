@@ -86,10 +86,18 @@ java -jar gateway/target/gateway.jar                      # :8080
 cd frontend && npm install && npm run dev                 # :3000
 ```
 
-## Déploiement de test sur Render
+## Déploiement gratuit
 
-Un Blueprint [`render.yaml`](render.yaml) décrit la base PostgreSQL, les 5 services backend (Docker) et le front
-(Node). Pas à pas : [docs/DEPLOIEMENT_RENDER.md](docs/DEPLOIEMENT_RENDER.md).
+Toute la stack (5 services, PostgreSQL, RabbitMQ, front) tient sur une seule machine avec Docker Compose (≈ 3 Go) :
+
+- **GitHub Codespaces** (sans carte bancaire, démarrage automatique, URL HTTPS publique) :
+  [ouvrir un Codespace](https://codespaces.new/bah13-a/damscino?ref=claude/serene-faraday-tqmxat) ;
+- **Oracle Cloud « Always Free »** (serveur gratuit permanent) : `sudo bash infra/vps/deploy.sh` installe tout,
+  avec HTTPS automatique (Caddy) et sauvegarde quotidienne ;
+- **PC + tunnel Cloudflare** pour une démo ponctuelle.
+
+Pas à pas : [docs/DEPLOIEMENT_GRATUIT.md](docs/DEPLOIEMENT_GRATUIT.md). Un Blueprint Render
+([`render.yaml`](render.yaml), [guide](docs/DEPLOIEMENT_RENDER.md)) reste disponible pour un hébergement payant par service.
 
 ## Configuration
 
@@ -114,7 +122,7 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 
 ### Tests de bout en bout (Playwright)
 
-47 scénarios sur les trois espaces, la remise en caisse, le rapprochement et l'API caisse, contre une stack démarrée (locale ou Render) : connexion et changement de mot
+47 scénarios sur les trois espaces, la remise en caisse, le rapprochement et l'API caisse, contre une stack démarrée (locale, Codespace ou serveur) : connexion et changement de mot
 de passe imposé, blocage, droits par rôle, partenaires et règles, catégories, import Excel/CSV et export des accès,
 bénéficiaires, comptes, QR renouvelé toutes les 30 s, session unique, **scan par caméra** (QR injecté dans une caméra
 simulée), refus (code falsifié, expiré, déjà utilisé, bénéficiaire ou partenaire inactif), quota hebdomadaire,
@@ -124,7 +132,7 @@ affichage mobile.
 ```bash
 docker compose up -d --build
 cd e2e && npm ci && npx playwright install chromium
-npx playwright test                      # E2E_BASE_URL=https://damascino-privileges.onrender.com pour Render
+npx playwright test                      # E2E_BASE_URL=https://<adresse> pour un serveur déployé
 npx playwright show-report
 ```
 
