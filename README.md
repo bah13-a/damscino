@@ -82,6 +82,7 @@ docker compose up --build
 ```
 
 Ouvrir http://localhost:3000/admin/connexion — identifiant `admin`, mot de passe `Damascino2026!` (changement imposé).
+Mot de passe admin perdu ou compte bloqué : `bash infra/reset-admin.sh` (les données sont conservées).
 Console RabbitMQ : http://localhost:15672 (guest / guest).
 
 ### Sans Docker (développement)
@@ -122,6 +123,7 @@ Pas à pas : [docs/DEPLOIEMENT_GRATUIT.md](docs/DEPLOIEMENT_GRATUIT.md). Un Blue
 | `QR_SECRET` | privilege | Signature des QR codes |
 | `CREDENTIALS_SECRET` | partner | Chiffrement AES-GCM des mots de passe temporaires jusqu'à l'activation |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | identity | Super-administrateur créé au premier démarrage |
+| `ADMIN_RESET` | identity | `true` : remet le mot de passe initial du super-administrateur, le débloque (voir `infra/reset-admin.sh`) |
 | `IDENTITY_URL`, `PARTNER_URL`, `PRIVILEGE_URL`, `REPORTING_URL` | gateway | Adresses des services |
 | `API_URL` | frontend (build) | Adresse de la gateway, utilisée par le proxy `/api/*` |
 | `NEXT_PUBLIC_ANDROID_APP_URL`, `NEXT_PUBLIC_IOS_APP_URL` | frontend (build) | Liens de téléchargement de l'application (défaut Android : dernière release GitHub) |

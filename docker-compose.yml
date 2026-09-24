@@ -58,6 +58,7 @@ services:
       <<: *backend-env
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Damascino2026!}
+      ADMIN_RESET: ${ADMIN_RESET:-false}
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 
   partner-service:

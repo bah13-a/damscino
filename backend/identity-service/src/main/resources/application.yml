@@ -48,3 +48,4 @@ damascino:
   bootstrap:
     admin-username: ${ADMIN_USERNAME:admin}
     admin-password: ${ADMIN_PASSWORD:Damascino2026!}
+    admin-reset: ${ADMIN_RESET:false}
