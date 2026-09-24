@@ -121,7 +121,7 @@ export class Api {
   }
 
   confirm(staffToken: string, token: string, dishPrice?: number) {
-    return this.call<{ status: string; reason: string | null; discountAmount: number | null }>(
+    return this.call<{ status: string; reason: string | null; discountAmount: number | null; validationCode: string | null }>(
       'POST',
       '/api/privileges/scan/confirm',
       staffToken,
@@ -207,3 +207,15 @@ export const specTicket = (code: string, ticketId: string) => ({
     { lineId: '3', sku: 'DES-KUN', label: 'Kunafa', category: 'DESSERTS', unitPrice: 15, quantity: 1 },
   ],
 });
+
+export interface TillSettings {
+  discountLabel: string;
+  applyMode: 'LINE_PERCENT' | 'TICKET_AMOUNT';
+  priceRequired: boolean;
+}
+
+export const DEFAULT_TILL_SETTINGS: TillSettings = { discountLabel: 'Damascino Privilèges', applyMode: 'LINE_PERCENT', priceRequired: false };
+
+export async function setTillSettings(api: Api, adminToken: string, settings: TillSettings) {
+  await api.call('PUT', '/api/pos-settings', adminToken, settings);
+}

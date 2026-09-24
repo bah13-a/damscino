@@ -23,9 +23,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/api/privileges/me", "/api/privileges/qr").hasRole("BENEFICIARY")
-                        .requestMatchers("/api/privileges/scan/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers("/api/privileges/scan/**", "/api/privileges/settings").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers("/api/pos/v1/**").hasRole("POS")
-                        .requestMatchers("/api/pos-terminals/**", "/api/pos-products/**").hasRole("ADMIN")
+                        .requestMatchers("/api/pos-terminals/**", "/api/pos-products/**", "/api/pos-settings").hasRole("ADMIN")
                         .anyRequest().denyAll())
                 .build();
     }

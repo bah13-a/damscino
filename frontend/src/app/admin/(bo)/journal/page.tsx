@@ -31,6 +31,7 @@ const ACTIONS: Record<string, string> = {
   POS_TERMINAL_DEACTIVATED: 'Caisse désactivée',
   POS_PRODUCTS_SAVED: 'Articles de caisse enregistrés',
   POS_PRODUCT_DELETED: 'Article de caisse supprimé',
+  TILL_SETTINGS_UPDATED: 'Paramètres de remise en caisse',
 };
 
 export default function AuditPage() {

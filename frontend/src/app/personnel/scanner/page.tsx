@@ -6,12 +6,45 @@ import { QrScanner } from '@/components/QrScanner';
 import { Alert, Button, Field, Logo, Spinner } from '@/components/ui';
 import { api, errorMessage, logout } from '@/lib/api';
 import { categoryLabel, dt, percent } from '@/lib/format';
-import type { ScanResult } from '@/lib/types';
+import type { ScanResult, TillSettings } from '@/lib/types';
 import { useSession } from '@/lib/useSession';
 
 const IDLE_MINUTES = Number(process.env.NEXT_PUBLIC_STAFF_IDLE_MINUTES ?? 5);
 
 type Step = { kind: 'scan' } | { kind: 'checking' } | { kind: 'result'; token: string; result: ScanResult };
+
+/** What the cashier must now enter in the "Remise" menu of the till. */
+function TillInstructions({ result, settings }: { result: ScanResult; settings: TillSettings | null }) {
+  const label = settings?.discountLabel ?? 'Damascino Privilèges';
+  const amountKnown = result.discountAmount !== null;
+  return (
+    <div className="mt-4 rounded-2xl bg-white p-4 text-ink" data-testid="till-instructions">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">À saisir maintenant dans la caisse</p>
+      <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
+        <li>
+          Rubrique <strong>Remise</strong> → <strong>« {label} »</strong>
+        </li>
+        {settings?.applyMode === 'TICKET_AMOUNT' ? (
+          <li>
+            Remise en montant sur le ticket :{' '}
+            <strong>{amountKnown ? `−${dt(result.discountAmount)}` : `${percent(result.discountPercent)} du prix du plat`}</strong>
+          </li>
+        ) : (
+          <li>
+            <strong>{percent(result.discountPercent)}</strong> sur la ligne du plat
+            {result.dishPrice !== null && <> à {dt(result.dishPrice)}</>}
+            {amountKnown && <> (soit <strong>−{dt(result.discountAmount)}</strong>)</>}
+          </li>
+        )}
+        {result.validationCode && (
+          <li>
+            Commentaire du ticket : <strong className="font-mono text-lg tracking-widest">{result.validationCode}</strong>
+          </li>
+        )}
+      </ol>
+    </div>
+  );
+}
 
 export default function ScannerPage() {
   const router = useRouter();
@@ -21,6 +54,12 @@ export default function ScannerPage() {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState('');
+  const [settings, setSettings] = useState<TillSettings | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    api<TillSettings>('staff', '/api/privileges/settings').then(setSettings).catch(() => undefined);
+  }, [session]);
 
   const signOut = useCallback(async () => {
     await logout('staff');
@@ -169,14 +208,26 @@ export default function ScannerPage() {
             {result.status === 'VALID' && (
               <div className="mt-4 space-y-3 rounded-2xl bg-white p-4 text-ink">
                 <Field
-                  label="Prix du plat remisé (DT) — recommandé"
+                  label={settings?.priceRequired ? 'Prix du plat remisé (DT)' : 'Prix du plat remisé (DT) — recommandé'}
                   inputMode="decimal"
                   placeholder="ex. 40"
                   value={price}
                   onChange={(event) => setPrice(event.target.value)}
-                  hint={preview !== null ? `Remise : ${dt(Math.round(preview * 1000) / 1000)}` : 'Facultatif : sert à chiffrer les remises accordées'}
+                  hint={
+                    preview !== null
+                      ? `Remise : ${dt(Math.round(preview * 1000) / 1000)}`
+                      : settings?.priceRequired
+                        ? 'Obligatoire : sert au rapprochement avec la caisse'
+                        : 'Facultatif : sert à chiffrer les remises accordées'
+                  }
                 />
-                <Button size="lg" className="w-full" loading={confirming} onClick={confirm}>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  loading={confirming}
+                  disabled={Boolean(settings?.priceRequired) && (price.trim() === '' || Number.isNaN(priceValue))}
+                  onClick={confirm}
+                >
                   Confirmer le passage
                 </Button>
               </div>
@@ -187,12 +238,7 @@ export default function ScannerPage() {
                 Remise accordée : <strong>{dt(result.discountAmount)}</strong> sur {dt(result.dishPrice)}
               </p>
             )}
-            {result.status === 'CONFIRMED' && result.validationCode && (
-              <p className="mt-2 text-sm text-white/90">
-                Code de validation à reporter sur le ticket :{' '}
-                <strong className="font-mono text-lg tracking-widest text-white">{result.validationCode}</strong>
-              </p>
-            )}
+            {result.status === 'CONFIRMED' && <TillInstructions result={result} settings={settings} />}
 
             <Button
               variant="secondary"

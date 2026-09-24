@@ -217,3 +217,68 @@ export interface PosProduct {
   category: string;
   updatedAt: string;
 }
+
+export type ApplyMode = 'LINE_PERCENT' | 'TICKET_AMOUNT';
+
+export interface TillSettings {
+  discountLabel: string;
+  applyMode: ApplyMode;
+  priceRequired: boolean;
+  updatedAt: string;
+}
+
+export interface ColumnMapping {
+  dateTime: number | null;
+  date: number | null;
+  time: number | null;
+  ticket: number | null;
+  amount: number | null;
+  label: number | null;
+  code: number | null;
+  cashier: number | null;
+}
+
+export interface SalesInspection {
+  headers: string[];
+  sample: string[][];
+  rowCount: number;
+  guessedMapping: ColumnMapping;
+}
+
+export interface ReconSale {
+  line: number;
+  dateTime: string;
+  ticket: string | null;
+  amount: number;
+  label: string | null;
+  code: string | null;
+  cashier: string | null;
+}
+
+export interface ReconPassage {
+  id: string;
+  dateTime: string;
+  beneficiaryName: string;
+  partnerName: string;
+  staffName: string;
+  dishPrice: number | null;
+  discountAmount: number | null;
+  validationCode: string | null;
+  ticketId: string | null;
+  channel: string;
+}
+
+export interface ReconciliationReport {
+  from: string;
+  to: string;
+  rowsRead: number;
+  discountRows: number;
+  passages: number;
+  tillDiscountTotal: number;
+  platformDiscountTotal: number;
+  amountGaps: number;
+  matched: { sale: ReconSale; passage: ReconPassage; matchedBy: 'CODE' | 'TICKET' | 'TIME_AND_AMOUNT'; amountGap: number | null }[];
+  discountsWithoutPassage: ReconSale[];
+  passagesWithoutDiscount: ReconPassage[];
+  rejectedRows: { line: number; reason: string }[];
+}

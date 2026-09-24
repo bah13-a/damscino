@@ -5,7 +5,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Field, Modal, PageHeader, Select, Table } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
 import { categoryLabel, dateTime } from '@/lib/format';
-import type { Category, PosProduct, PosTerminal, PosTerminalWithKey } from '@/lib/types';
+import type { ApplyMode, Category, PosProduct, PosTerminal, PosTerminalWithKey, TillSettings } from '@/lib/types';
 import { useApi } from '@/lib/useApi';
 
 /** Shows a freshly generated API key once. */
@@ -229,12 +229,88 @@ function Products() {
   );
 }
 
+/** "Remise assistée": how the cashier enters the advantage in the existing "Remise" menu of the till. */
+function AssistedDiscountSettings() {
+  const settings = useApi<TillSettings>('admin', '/api/privileges/settings');
+  const [form, setForm] = useState<{ discountLabel: string; applyMode: ApplyMode; priceRequired: boolean } | null>(null);
+  const [message, setMessage] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
+  const current = form ?? (settings.data ? { ...settings.data } : null);
+
+  if (!current) return settings.error ? <Alert>{settings.error}</Alert> : null;
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      settings.setData(await api<TillSettings>('admin', '/api/pos-settings', { method: 'PUT', body: current }));
+      setForm(null);
+      setMessage({ tone: 'success', text: 'Paramètres enregistrés : ils s’appliquent immédiatement aux scanners.' });
+    } catch (e) {
+      setMessage({ tone: 'danger', text: errorMessage(e) });
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="mb-1 font-display text-xl font-bold">Remise saisie dans la caisse</h2>
+      <p className="mb-4 text-sm text-muted">
+        Le caissier valide le QR code avec la tablette « Espace personnel », puis applique la remise dans la rubrique{' '}
+        <strong>Remise</strong> de la caisse existante. La tablette lui indique exactement quoi saisir, et le{' '}
+        <Link href="/admin/rapprochement" className="text-brand-700 underline">
+          rapprochement
+        </Link>{' '}
+        compare ensuite l&apos;export des ventes avec les passages validés.
+      </p>
+      <Card>
+        <form onSubmit={save} className="grid gap-4 md:grid-cols-3 md:items-end">
+          <Field
+            label="Nom de la remise dans la caisse"
+            required
+            value={current.discountLabel}
+            onChange={(e) => setForm({ ...current, discountLabel: e.target.value })}
+            hint="Tel qu'il apparaît dans la caisse et dans ses exports"
+          />
+          <Select
+            label="Comment la caisse applique la remise"
+            value={current.applyMode}
+            onChange={(e) => setForm({ ...current, applyMode: e.target.value as ApplyMode })}
+          >
+            <option value="LINE_PERCENT">En % sur la ligne du plat</option>
+            <option value="TICKET_AMOUNT">En montant sur le ticket</option>
+          </Select>
+          <label className="flex items-center gap-2 pb-3 text-sm">
+            <input
+              type="checkbox"
+              checked={current.priceRequired}
+              onChange={(e) => setForm({ ...current, priceRequired: e.target.checked })}
+              className="h-4 w-4 accent-brand-700"
+            />
+            Prix du plat obligatoire sur la tablette
+          </label>
+          {current.applyMode === 'TICKET_AMOUNT' && !current.priceRequired && (
+            <p className="text-sm text-amber-700 md:col-span-3">
+              En montant sur le ticket, rendez le prix obligatoire : la tablette pourra alors afficher le montant exact à saisir.
+            </p>
+          )}
+          <div className="md:col-span-3">
+            <Button type="submit">Enregistrer</Button>
+          </div>
+        </form>
+      </Card>
+      {message && (
+        <div className="mt-3">
+          <Alert tone={message.tone}>{message.text}</Alert>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function TillsPage() {
   return (
     <>
       <PageHeader
         title="Intégration caisse"
-        subtitle="Caisses autorisées à valider l'avantage directement depuis le logiciel de caisse, et correspondance des articles."
+        subtitle="Remise saisie dans la caisse existante (rubrique Remise) et, si le logiciel de caisse le permet, connexion directe par API."
         actions={
           <Link href="/admin/caisses/simulateur" className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">
             Simulateur de caisse
@@ -242,8 +318,17 @@ export default function TillsPage() {
         }
       />
       <div className="space-y-10">
-        <Terminals />
-        <Products />
+        <AssistedDiscountSettings />
+        <div className="border-t border-line pt-8">
+          <p className="mb-6 text-sm text-muted">
+            <strong>Caisse connectée (optionnel)</strong> — si l&apos;éditeur de la caisse branche l&apos;API, la remise est
+            calculée et appliquée automatiquement, sans tablette.
+          </p>
+          <div className="space-y-10">
+            <Terminals />
+            <Products />
+          </div>
+        </div>
       </div>
     </>
   );

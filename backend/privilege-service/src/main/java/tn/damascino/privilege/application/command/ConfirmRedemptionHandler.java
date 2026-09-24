@@ -13,6 +13,7 @@ import tn.damascino.privilege.domain.Redemption;
 import tn.damascino.privilege.domain.RedemptionRepository;
 import tn.damascino.privilege.projection.BeneficiaryProjection;
 import tn.damascino.privilege.projection.PartnerProjection;
+import tn.damascino.privilege.settings.TillSettingsRepository;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -29,10 +30,12 @@ public class ConfirmRedemptionHandler implements CommandHandler<ConfirmRedemptio
     private final ScanEvaluator evaluator;
     private final RedemptionRepository redemptions;
     private final EventPublisher events;
+    private final TillSettingsRepository tillSettings;
     private final Clock clock;
 
     public ConfirmRedemptionHandler(ScanEvaluator evaluator, RedemptionRepository redemptions, EventPublisher events,
-                                    Clock clock) {
+                                    TillSettingsRepository tillSettings, Clock clock) {
+        this.tillSettings = tillSettings;
         this.evaluator = evaluator;
         this.redemptions = redemptions;
         this.events = events;
@@ -49,6 +52,9 @@ public class ConfirmRedemptionHandler implements CommandHandler<ConfirmRedemptio
         Evaluation evaluation = evaluator.evaluate(command.token(), true);
         if (!evaluation.accepted()) {
             return evaluator.refuse(evaluation, command.staff(), "CONFIRM");
+        }
+        if (price == null && tillSettings.current().isPriceRequired()) {
+            throw ApiException.badRequest("PRICE_REQUIRED", "Saisissez le prix du plat remisé");
         }
         BeneficiaryProjection b = evaluation.beneficiary();
         PartnerProjection p = evaluation.partner();

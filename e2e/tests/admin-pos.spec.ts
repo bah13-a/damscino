@@ -43,7 +43,7 @@ test.describe('Intégration caisse · administration et simulateur', () => {
     await page.getByLabel('Référence (SKU)').fill(sku);
     await page.getByLabel('Libellé').fill('Azmari Kebab');
     await page.getByLabel('Catégorie').selectOption({ label: 'Plats' });
-    await page.getByRole('button', { name: 'Enregistrer' }).click();
+    await page.locator('form', { has: page.getByLabel('Référence (SKU)') }).getByRole('button', { name: 'Enregistrer' }).click();
     await expect(page.getByRole('row', { name: new RegExp(sku) })).toContainText('Plats');
 
     const csv = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'dp-pos-')), 'articles.csv');

@@ -1,7 +1,59 @@
 # Intégration de Damascino Privilèges dans la caisse
 
-Ce document s'adresse à l'éditeur ou à l'intégrateur du logiciel de caisse de Damascino. Il décrit comment la
-caisse applique elle-même l'avantage « Damascino Privilèges » (−20 % sur un plat éligible) sur le ticket du client.
+Deux modes, qui peuvent coexister :
+
+| Mode | Principe | Développement dans la caisse |
+|---|---|---|
+| **A. Remise saisie dans la caisse** (mode par défaut) | Le caissier valide le QR avec la tablette « Espace personnel », puis applique la remise dans la rubrique **Remise** existante de la caisse. Un rapprochement compare l'export des ventes avec les passages validés | **Aucun** |
+| **B. Caisse connectée** (optionnel) | La caisse appelle l'API : la remise est calculée et ajoutée automatiquement au ticket | Connecteur à développer par l'éditeur (§ B ci-dessous) |
+
+## A. Remise saisie dans la caisse (rubrique « Remise » existante)
+
+### Mise en place (une fois)
+
+1. **Dans la caisse** : créer une remise nommée, par exemple « Damascino Privilèges », de préférence **en % sur une
+   ligne** (20 %). Si la caisse ne gère que les remises sur le ticket entier, utiliser une remise **en montant**.
+   Si possible, n'autoriser cette remise qu'aux caissiers concernés.
+2. **Dans l'administration Damascino Privilèges → Caisses → « Remise saisie dans la caisse »** :
+   - nom de la remise, identique à celui de la caisse (il sert à la retrouver dans l'export) ;
+   - mode : « En % sur la ligne du plat » ou « En montant sur le ticket » ;
+   - prix du plat obligatoire sur la tablette. Recommandé, et indispensable en mode « montant » : la tablette
+     affiche alors le montant exact à saisir et le rapprochement compare les montants.
+3. Créer un compte « Personnel scanner » par caissier (Administration → Comptes) et installer l'Espace personnel sur
+   la tablette ou le téléphone de chaque caisse.
+
+### Au quotidien, en caisse
+
+1. Le client présente son QR code ; le caissier le scanne avec la tablette. Écran vert « Avantage valide » : nom,
+   partenaire, −20 % sur un plat éligible.
+2. Il saisit le prix du plat (ex. 40 DT) et confirme.
+3. La tablette affiche **« À saisir maintenant dans la caisse »**, par exemple :
+   - Rubrique Remise → « Damascino Privilèges »
+   - 20 % sur la ligne du plat à 40 DT (soit −8 DT), ou « Remise en montant sur le ticket : −8 DT »
+   - Commentaire du ticket : **428249** (code de validation)
+4. Le caissier applique la remise dans la caisse et, si la caisse le permet, note le code dans le commentaire du ticket.
+
+### Contrôle : rapprochement (Administration → Rapprochement)
+
+1. Exporter les ventes de la caisse (Excel ou CSV) sur un ou plusieurs jours.
+2. L'importer : les colonnes sont reconnues automatiquement (date et heure, montant de la remise, libellé de la
+   remise, commentaire, n° de ticket, caissier) et restent modifiables.
+3. La plateforme rapproche chaque remise « Damascino » d'un passage validé, par ordre de priorité : code de
+   validation noté sur le ticket, puis n° de ticket, puis même jour, même montant et heure la plus proche (tolérance
+   réglable, 30 min par défaut). Elle signale :
+   - **les remises en caisse sans passage validé** : remise appliquée sans QR code valide, à vérifier ;
+   - **les passages validés sans remise en caisse** : oubli, ou remise saisie sous un autre nom ;
+   - **les écarts de montant** : remise saisie différente de la remise validée ;
+   - les lignes illisibles (date ou montant).
+4. Les anomalies s'exportent en CSV. Les autres remises de la caisse (happy hour, repas du personnel…) sont ignorées
+   grâce au libellé.
+
+Ce mode fonctionne avec n'importe quelle caisse qui sait appliquer une remise et exporter ses ventes.
+
+## B. Caisse connectée par API (optionnel)
+
+Cette partie s'adresse à l'éditeur ou à l'intégrateur du logiciel de caisse. Elle décrit comment la caisse applique
+elle-même l'avantage sur le ticket, sans tablette.
 
 - Spécification technique : [`api-caisse/openapi.yaml`](api-caisse/openapi.yaml) (OpenAPI 3, importable dans
   Postman, Insomnia ou Swagger UI).
@@ -138,7 +190,7 @@ ticket manquant). Toutes les autres réponses sont en `200` avec `status`.
 | Ticket remboursé → `cancel` | Passage « Annulé », le client peut de nouveau utiliser son avantage |
 | Clé révoquée dans l'administration | `401` |
 
-## 7. Si la caisse ne peut pas appeler d'API
+## 7. Si la caisse ne peut pas appeler d'API : voir le mode A ci-dessus
 
 - **Remise assistée** : le caissier valide le QR avec la tablette « Espace personnel » (déjà disponible), applique
   dans la caisse une remise « Damascino Privilèges 20 % » créée une fois pour toutes, et reporte sur le ticket le
