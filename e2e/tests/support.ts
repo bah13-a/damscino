@@ -116,6 +116,26 @@ export class Api {
     });
   }
 
+  /** Sends an activation code (test environment: returned as devCode instead of a real SMS). */
+  requestSms(phone: string, partnerId?: string) {
+    return this.call<{ maskedPhone: string; expiresIn: number; resendIn: number; devCode: string | null }>(
+      'POST',
+      '/api/auth/sms/request',
+      undefined,
+      { phone, partnerId: partnerId ?? null },
+    );
+  }
+
+  verifySms(phone: string, code: string) {
+    return this.call<Auth>('POST', '/api/auth/sms/verify', undefined, { phone, code });
+  }
+
+  /** Activation by SMS, once the account reached the identity service. */
+  async smsLogin(phone: string, partnerId?: string): Promise<Auth> {
+    const sent = await eventually(() => this.requestSms(phone, partnerId));
+    return this.verifySms(phone, sent.devCode!);
+  }
+
   async createStaff(token: string, pin = '4321') {
     const username = `caisse${uid()}`;
     await this.call('POST', '/api/accounts', token, { role: 'STAFF', username, displayName: `Caissier ${username}`, secret: pin });
@@ -147,7 +167,8 @@ export class Api {
  */
 export async function uiLogin(page: Page, space: Space, username: string, password: string) {
   if (space === 'admin') await page.goto(`${WEB_URL}/admin/connexion`);
-  else await page.goto(`${APP_URL}/connexion?espace=${space}`);
+  // beneficiaries sign in by SMS by default; the password form stays available behind a link
+  else await page.goto(`${APP_URL}/connexion?espace=${space}${space === 'beneficiary' ? '&mode=password' : ''}`);
   await page.getByLabel(space === 'beneficiary' ? 'Identifiant (numéro de téléphone)' : 'Identifiant', { exact: true }).fill(username);
   await page.getByLabel(space === 'staff' ? 'Code PIN' : 'Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();

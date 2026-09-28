@@ -1,0 +1,110 @@
+package tn.damascino.identity.application.command;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import tn.damascino.common.cqrs.CommandHandler;
+import tn.damascino.common.security.Role;
+import tn.damascino.common.util.PhoneNumbers;
+import tn.damascino.common.web.ApiException;
+import tn.damascino.identity.application.sms.SmsRateLimiter;
+import tn.damascino.identity.application.sms.SmsSender;
+import tn.damascino.identity.domain.Account;
+import tn.damascino.identity.domain.AccountRepository;
+import tn.damascino.identity.domain.SmsCode;
+import tn.damascino.identity.domain.SmsCodeRepository;
+
+import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+
+/**
+ * Activation step 1: the number must be on a partner list (and on the list of the partner whose link was opened);
+ * a 6-digit code is then sent by SMS.
+ */
+@Component
+public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeCommand, RequestSmsCodeCommand.Sent> {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private final AccountRepository accounts;
+    private final SmsCodeRepository codes;
+    private final SmsSender sender;
+    private final SmsRateLimiter rateLimiter;
+    private final Clock clock;
+    private final Duration ttl;
+    private final Duration resendDelay;
+    private final int maxPerPhonePerHour;
+    private final boolean exposeCodes;
+
+    public RequestSmsCodeHandler(AccountRepository accounts, SmsCodeRepository codes, SmsSender sender,
+                                 SmsRateLimiter rateLimiter, Clock clock,
+                                 @Value("${damascino.sms.code-ttl}") Duration ttl,
+                                 @Value("${damascino.sms.resend-delay}") Duration resendDelay,
+                                 @Value("${damascino.sms.max-per-phone-per-hour}") int maxPerPhonePerHour,
+                                 @Value("${damascino.sms.expose-codes}") boolean exposeCodes) {
+        this.accounts = accounts;
+        this.codes = codes;
+        this.sender = sender;
+        this.rateLimiter = rateLimiter;
+        this.clock = clock;
+        this.ttl = ttl;
+        this.resendDelay = resendDelay;
+        this.maxPerPhonePerHour = maxPerPhonePerHour;
+        // never reveal a code that was really sent by SMS
+        this.exposeCodes = exposeCodes && sender.simulated();
+    }
+
+    @Override
+    @Transactional
+    public RequestSmsCodeCommand.Sent handle(RequestSmsCodeCommand command) {
+        String phone = PhoneNumbers.normalize(command.phone());
+        if (!PhoneNumbers.isValid(phone)) {
+            throw ApiException.badRequest("INVALID_PHONE", "Numéro de téléphone invalide : saisissez les 8 chiffres.");
+        }
+        if (!rateLimiter.tryAcquire(command.clientIp())) {
+            throw tooMany("SMS_RATE_LIMITED", "Trop de demandes depuis ce réseau. Réessayez dans une heure.");
+        }
+        Account account = accounts.findByUsername(phone).filter(a -> a.getRole() == Role.BENEFICIARY)
+                .filter(a -> command.partnerId() == null || command.partnerId().equals(a.getPartnerId()))
+                .orElseThrow(() -> ApiException.forbidden("NUMBER_NOT_AUTHORIZED", command.partnerId() == null
+                        ? "Ce numéro ne figure sur aucune liste de bénéficiaires. Contactez le service RH de votre entreprise."
+                        : "Ce numéro ne figure pas sur la liste de votre entreprise. Contactez votre service RH."));
+        if (!account.isActive()) {
+            throw ApiException.forbidden("ACCOUNT_DISABLED", "Ce compte est désactivé. Contactez Damascino.");
+        }
+
+        Instant now = clock.instant();
+        codes.findFirstByPhoneOrderByCreatedAtDesc(phone).ifPresent(last -> {
+            Duration elapsed = Duration.between(last.getCreatedAt(), now);
+            if (elapsed.compareTo(resendDelay) < 0) {
+                long wait = resendDelay.minus(elapsed).toSeconds() + 1;
+                throw tooMany("SMS_RESEND_TOO_SOON", "Un code vient d'être envoyé. Patientez " + wait
+                        + " secondes avant d'en demander un nouveau.");
+            }
+        });
+        if (codes.countByPhoneAndCreatedAtAfter(phone, now.minus(Duration.ofHours(1))) >= maxPerPhonePerHour) {
+            throw tooMany("SMS_LIMIT_REACHED", "Nombre maximal de codes atteint pour ce numéro. Réessayez dans une heure.");
+        }
+
+        codes.findByPhoneAndConsumedFalse(phone).forEach(SmsCode::invalidate);
+        String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+        codes.save(new SmsCode(account.getId(), phone, code, ttl, command.clientIp(), now));
+        // plain ASCII keeps the message in a single SMS
+        sender.send("+216" + phone, "Damascino Privileges : votre code est " + code + ". Valable "
+                + ttl.toMinutes() + " min. Ne le communiquez a personne.");
+
+        return new RequestSmsCodeCommand.Sent(mask(phone), ttl.toSeconds(), resendDelay.toSeconds(),
+                exposeCodes ? code : null);
+    }
+
+    static String mask(String phone) {
+        return "+216 •• ••• " + phone.substring(5);
+    }
+
+    private static ApiException tooMany(String code, String message) {
+        return new ApiException(HttpStatus.TOO_MANY_REQUESTS, code, message);
+    }
+}

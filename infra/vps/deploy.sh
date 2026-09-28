@@ -71,6 +71,9 @@ ENV
 else
   sed -i "s/^DOMAIN=.*/DOMAIN=$DOMAIN/; s#^PUBLIC_URL=.*#PUBLIC_URL=https://$DOMAIN#" .env
 fi
+# SMS sending (docs/SMS.md): filled in by hand with the credentials of the "SMS Gateway for Android" phone
+grep -q '^SMS_GATEWAY_USER=' .env || printf 'SMS_GATEWAY_USER=\nSMS_GATEWAY_PASSWORD=\n' >> .env
+grep -q '^SMS_GATEWAY_USER=.\+' .env || echo "À faire : renseigner SMS_GATEWAY_USER et SMS_GATEWAY_PASSWORD dans $DIR/.env (voir docs/SMS.md), sinon les codes SMS ne partent pas."
 
 log "6/7 Construction et démarrage (10 à 20 minutes la première fois)"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans

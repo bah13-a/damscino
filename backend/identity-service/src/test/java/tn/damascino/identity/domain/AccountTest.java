@@ -63,4 +63,20 @@ class AccountTest {
         assertThat(account.isMustChangePassword()).isTrue();
         assertThat(account.getSessionVersion()).isEqualTo(version + 1);
     }
+
+    @Test
+    void smsSignInActivatesAndRetiresTheTemporaryPassword() {
+        Account account = beneficiary();
+        long before = account.getSessionVersion();
+
+        assertThat(account.signInBySms("unusable", now)).isTrue();
+
+        assertThat(account.getActivatedAt()).isEqualTo(now);
+        assertThat(account.isMustChangePassword()).isFalse();
+        assertThat(account.getPasswordHash()).isEqualTo("unusable");
+        assertThat(account.getSessionVersion()).isGreaterThan(before);
+        // a later sign-in (new phone) is not a new activation
+        assertThat(account.signInBySms("other", now.plusSeconds(60))).isFalse();
+        assertThat(account.getPasswordHash()).isEqualTo("unusable");
+    }
 }

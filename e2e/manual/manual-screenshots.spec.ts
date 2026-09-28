@@ -157,18 +157,17 @@ test('captures du manuel d’utilisation', async ({ request }) => {
   await amira.goto('/');
   await expect(amira.getByRole('button', { name: 'Je suis bénéficiaire' })).toBeVisible();
   await shot(amira, 'benef-01-accueil');
+  // activation by SMS (test environment: the code is shown in the app; hidden on the screenshot)
   await amira.goto(`/connexion?espace=beneficiary&p=${mallId}`);
-  await amira.getByLabel('Identifiant (numéro de téléphone)').fill(phoneOf(1).replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3'));
-  await amira.getByLabel('Mot de passe', { exact: true }).fill(temp(phoneOf(1)));
+  await amira.getByLabel('Numéro de téléphone').fill(phoneOf(1).replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3'));
   await expect(amira.getByText('Bienvenue aux collaborateurs de Mall of Sfax.')).toBeVisible();
   await shot(amira, 'benef-02-connexion');
-  await amira.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(amira).toHaveURL(/mot-de-passe/);
-  await amira.getByLabel('Mot de passe temporaire').fill(temp(phoneOf(1)));
-  await amira.getByLabel('Nouveau mot de passe').fill('amira-2026!');
-  await amira.getByLabel('Confirmation').fill('amira-2026!');
-  await shot(amira, 'benef-03-nouveau-mot-de-passe');
-  await amira.getByRole('button', { name: 'Enregistrer' }).click();
+  await amira.getByRole('button', { name: 'Recevoir le code par SMS' }).click();
+  const devCode = (await amira.getByText(/Votre code est \d{6}/).textContent())!.match(/\d{6}/)![0];
+  await amira.getByText(/Environnement de test/).evaluate((el) => el.parentElement!.remove());
+  await amira.getByLabel('Code reçu par SMS').fill(devCode);
+  await shot(amira, 'benef-03-code-sms');
+  await amira.getByRole('button', { name: 'Valider' }).click();
   await expect(amira.getByText('Disponible')).toBeVisible();
   await shot(amira, 'benef-04-espace');
   const qrTokens: string[] = [];

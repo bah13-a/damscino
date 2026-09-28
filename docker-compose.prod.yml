@@ -8,6 +8,12 @@ services:
     ports: !reset []
   gateway:
     ports: !reset []
+  identity-service:
+    environment:
+      # real SMS through "SMS Gateway for Android" (docs/SMS.md); the code is never returned to the app
+      SMS_PROVIDER: ${SMS_PROVIDER:-android-gateway}
+      SMS_EXPOSE_CODES: "false"
+      SMS_MAX_PER_IP_HOUR: ${SMS_MAX_PER_IP_HOUR:-30}
   frontend:
     ports: !reset []
     build:

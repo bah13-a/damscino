@@ -143,6 +143,28 @@ public class Account {
         sessionVersion++;
     }
 
+    /**
+     * Signs in with a code received by SMS: proves the phone number, so the account is activated. A pending temporary
+     * password is replaced by {@code unusableHash} (the SMS is now the way in); a personal password is kept.
+     *
+     * @return true when this sign-in activates the account for the first time
+     */
+    public boolean signInBySms(String unusableHash, Instant now) {
+        if (role != Role.BENEFICIARY) {
+            throw new IllegalStateException("SMS sign-in is reserved to beneficiaries");
+        }
+        if (mustChangePassword) {
+            passwordHash = unusableHash;
+            mustChangePassword = false;
+        }
+        registerSuccessfulLogin(now);
+        if (activatedAt == null) {
+            activatedAt = now;
+            return true;
+        }
+        return false;
+    }
+
     public void resetSecret(String hash) {
         passwordHash = hash;
         mustChangePassword = role == Role.ADMIN;

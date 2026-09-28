@@ -59,6 +59,13 @@ services:
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Damascino2026!}
       ADMIN_RESET: ${ADMIN_RESET:-false}
+      # test environment: SMS simulated, the code is shown in the app (see docs/SMS.md)
+      SMS_PROVIDER: ${SMS_PROVIDER:-log}
+      SMS_EXPOSE_CODES: ${SMS_EXPOSE_CODES:-true}
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-https://api.sms-gate.app/3rdparty/v1}
+      SMS_GATEWAY_USER: ${SMS_GATEWAY_USER:-}
+      SMS_GATEWAY_PASSWORD: ${SMS_GATEWAY_PASSWORD:-}
+      SMS_MAX_PER_IP_HOUR: ${SMS_MAX_PER_IP_HOUR:-1000}
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 
   partner-service:

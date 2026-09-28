@@ -114,6 +114,33 @@ export async function login(space: Space, username: string, password: string) {
   return saveSession(space, auth);
 }
 
+export interface SmsCodeSent {
+  maskedPhone: string;
+  expiresIn: number;
+  resendIn: number;
+  /** Test environment only: no SMS is sent, the code is returned to the app. */
+  devCode: string | null;
+}
+
+/** Beneficiary activation, step 1: the number must be on the list of a partner (of `partnerId` when given). */
+export function requestSmsCode(phone: string, partnerId?: string) {
+  return api<SmsCodeSent>('/api/auth/sms/request', {
+    method: 'POST',
+    anonymous: true,
+    body: { phone: phone.trim(), partnerId: partnerId || null },
+  });
+}
+
+/** Step 2: a valid code activates the account and keeps this phone signed in. */
+export async function verifySmsCode(phone: string, code: string) {
+  const auth = await api<AuthResult>('/api/auth/sms/verify', {
+    method: 'POST',
+    anonymous: true,
+    body: { phone: phone.trim(), code: code.trim() },
+  });
+  return saveSession('beneficiary', auth);
+}
+
 export async function logout() {
   const session = getSession();
   await clearSession();

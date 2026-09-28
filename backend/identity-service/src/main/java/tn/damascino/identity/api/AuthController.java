@@ -1,6 +1,7 @@
 package tn.damascino.identity.api;
 
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpHeaders;
@@ -20,8 +21,12 @@ import tn.damascino.identity.application.command.ChangePasswordCommand;
 import tn.damascino.identity.application.command.LoginCommand;
 import tn.damascino.identity.application.command.LogoutCommand;
 import tn.damascino.identity.application.command.RefreshCommand;
+import tn.damascino.identity.application.command.RequestSmsCodeCommand;
+import tn.damascino.identity.application.command.VerifySmsCodeCommand;
 import tn.damascino.identity.application.query.AccountView;
 import tn.damascino.identity.application.query.MeQuery;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -52,6 +57,36 @@ public class AuthController {
                             @RequestHeader(value = ClientPolicy.HEADER, required = false) String clientApp) {
         clientPolicy.checkLogin(request.space(), clientApp);
         return commands.dispatch(new LoginCommand(request.username(), request.password(), request.space(), userAgent));
+    }
+
+    public record SmsCodeRequest(@NotBlank String phone, UUID partnerId) {
+    }
+
+    public record SmsVerifyRequest(@NotBlank String phone, @NotBlank String code) {
+    }
+
+    /** Beneficiary activation / sign-in, step 1: send a code by SMS to a number of a partner list. */
+    @PostMapping("/sms/request")
+    public RequestSmsCodeCommand.Sent requestSmsCode(@Valid @RequestBody SmsCodeRequest request,
+                                                     @RequestHeader(value = ClientPolicy.HEADER, required = false) String clientApp,
+                                                     HttpServletRequest http) {
+        clientPolicy.checkLogin(Role.BENEFICIARY, clientApp);
+        return commands.dispatch(new RequestSmsCodeCommand(request.phone(), request.partnerId(), clientAddress(http)));
+    }
+
+    /** Step 2: a valid code activates the account and opens the session on this phone. */
+    @PostMapping("/sms/verify")
+    public AuthResult verifySmsCode(@Valid @RequestBody SmsVerifyRequest request,
+                                    @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
+                                    @RequestHeader(value = ClientPolicy.HEADER, required = false) String clientApp) {
+        clientPolicy.checkLogin(Role.BENEFICIARY, clientApp);
+        return commands.dispatch(new VerifySmsCodeCommand(request.phone(), request.code(), userAgent));
+    }
+
+    /** Client address as set by the edge proxy (same rule as the gateway's login throttle). */
+    private static String clientAddress(HttpServletRequest http) {
+        String forwarded = http.getHeader("X-Forwarded-For");
+        return forwarded != null && !forwarded.isBlank() ? forwarded.split(",")[0].trim() : http.getRemoteAddr();
     }
 
     @PostMapping("/refresh")

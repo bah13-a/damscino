@@ -57,9 +57,11 @@ Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Fonctionnalités (V1)
 
-- Import Excel / CSV des bénéficiaires avec contrôle des doublons, génération des identifiants (téléphone) et des
-  mots de passe temporaires, export des accès par partenaire, modèle d'import téléchargeable.
-- Changement de mot de passe obligatoire à la première connexion, blocage 15 min après 5 échecs, réinitialisation par
+- Import Excel / CSV des bénéficiaires avec contrôle des doublons, modèle d'import téléchargeable.
+- **Activation par SMS** : numéro présent sur la liste du partenaire (du lien d'activation ouvert), code à 6 chiffres
+  valable 5 min, 3 essais, limites d'envoi par numéro et par adresse ; envoi gratuit via *SMS Gateway for Android*
+  ([docs/SMS.md](docs/SMS.md)). Mots de passe temporaires et export des accès conservés en secours.
+- Changement de mot de passe obligatoire à la première connexion par mot de passe, blocage 15 min après 5 échecs, réinitialisation par
   l'administration, **une seule session active** par bénéficiaire.
 - QR code signé (HMAC-SHA256), valable 40 s, renouvelé toutes les 30 s, **à usage unique**, révoqué si le compte se
   connecte sur un autre appareil.
@@ -134,6 +136,10 @@ Pas à pas : [docs/DEPLOIEMENT_GRATUIT.md](docs/DEPLOIEMENT_GRATUIT.md). Un Blue
 | `IDENTITY_URL`, `PARTNER_URL`, `PRIVILEGE_URL`, `REPORTING_URL` | gateway | Adresses des services |
 | `API_URL` | frontend (build) | Adresse de la gateway, utilisée par le proxy `/api/*` |
 | `NEXT_PUBLIC_ANDROID_APP_URL`, `NEXT_PUBLIC_IOS_APP_URL` | frontend (build) | Liens de téléchargement de l'application (défaut Android : dernière release GitHub) |
+| `SMS_PROVIDER` | identity | `log` (test : aucun envoi, code dans le journal) ou `android-gateway` (production) — voir [docs/SMS.md](docs/SMS.md) |
+| `SMS_GATEWAY_URL`, `SMS_GATEWAY_USER`, `SMS_GATEWAY_PASSWORD` | identity | Passerelle gratuite *SMS Gateway for Android* (relais cloud par défaut) |
+| `SMS_EXPOSE_CODES` | identity | Test uniquement : renvoie le code à l'application quand aucun SMS réel n'est envoyé |
+| `SMS_CODE_TTL`, `SMS_RESEND_DELAY`, `SMS_MAX_PER_PHONE_HOUR`, `SMS_MAX_PER_IP_HOUR` | identity | Validité du code (5 min), délai de renvoi (60 s), limites d'envoi (3 / numéro / heure, 30 / adresse / heure) |
 | `SECURITY_MOBILE_ONLY_SPACES` | identity | `true` (défaut) : bénéficiaires et personnel ne se connectent que depuis l'application |
 | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_ALLOW_SERVER_CHANGE`, `EXPO_PUBLIC_STAFF_IDLE_MINUTES` | mobile (build) | Adresse du site, version de test (adresse modifiable), déconnexion du scanner |
 | `SECURITY_LOGIN_THROTTLE_MAX_FAILURES`, `SECURITY_LOGIN_THROTTLE_WINDOW` | gateway | Échecs de connexion tolérés par adresse avant refus 429 (défaut 100 en `10m`) |

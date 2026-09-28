@@ -19,7 +19,8 @@ public class SecurityConfig {
         return SecuritySupport.statelessJwt(http, jwtService)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
+                                "/api/auth/sms/request", "/api/auth/sms/verify").permitAll()
                         .requestMatchers("/api/accounts/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .build();

@@ -49,8 +49,9 @@ la connexion est refusée avec le message *« Connectez-vous depuis l'applicatio
 **Le parcours en bref :**
 
 1. Damascino crée un **partenaire** (ex. Mall of Sfax) et importe la **liste** de ses collaborateurs.
-2. Chaque collaborateur reçoit un **identifiant** (son numéro de téléphone) et un **mot de passe temporaire**.
-3. À la première connexion, il choisit son propre mot de passe.
+2. Chaque collaborateur installe l'application et saisit **son numéro de téléphone** : s'il figure sur la liste, il
+   reçoit un **code par SMS** qui active son compte (voir [docs/SMS.md](../SMS.md)).
+3. Il reste connecté sur son téléphone ; un nouveau code n'est demandé qu'en cas de changement de téléphone.
 4. Au restaurant, il touche **« Utiliser mon avantage »** : un QR code s'affiche.
 5. Le caissier **scanne** le code, saisit le prix du plat, **confirme**, puis applique la remise dans la caisse.
 6. L'avantage est consommé pour la journée, et le passage apparaît dans les statistiques.
@@ -436,17 +437,24 @@ L'écran rouge indique le **motif**. N'appliquez **aucune remise**.
 
    <img src="img/benef-01-accueil.png" alt="Accueil de l'application" width="260">
 
-3. Saisissez votre **identifiant** (votre numéro de téléphone, ex. `98 123 456`) et le **mot de passe temporaire**
-   reçu.
-4. **Se connecter**.
-5. Choisissez **votre propre mot de passe** (8 caractères minimum), confirmez-le, puis **Enregistrer**.
+3. Saisissez **votre numéro de téléphone** (celui communiqué à votre entreprise, ex. `98 123 456`) et touchez
+   **Recevoir le code par SMS**.
+4. Vous recevez un SMS *« Damascino Privileges : votre code est … »*. Saisissez les **6 chiffres** et touchez
+   **Valider** : votre compte est activé et votre espace s'affiche.
+    - Le code est valable **5 minutes** ; après **3 codes faux**, demandez-en un nouveau (**Renvoyer un code**,
+      possible après 60 secondes).
+    - Si le numéro n'est pas sur la liste de votre entreprise, l'inscription est refusée : contactez votre service RH.
 
-<img src="img/benef-02-connexion.png" alt="Connexion" width="260"> <img src="img/benef-03-nouveau-mot-de-passe.png" alt="Nouveau mot de passe" width="260">
+<img src="img/benef-02-connexion.png" alt="Saisie du numéro" width="260"> <img src="img/benef-03-code-sms.png" alt="Code reçu par SMS" width="260">
+
+> Votre entreprise vous a remis un mot de passe ? Touchez **J'ai un mot de passe** sous le bouton. Ce mode de secours
+> est désactivé dès que vous vous activez par SMS.
 
 ### 3.2 Rester connecté
 
 Vous restez connecté : ouvrez simplement l'application **Damascino Privilèges** au moment de payer. Votre session est
-conservée de façon sécurisée sur le téléphone. Si vous vous connectez sur un autre téléphone, l'ancien est déconnecté.
+conservée de façon sécurisée sur le téléphone. **Un nouveau code SMS n'est demandé qu'en cas de changement de
+téléphone** ; l'ancien téléphone est alors déconnecté.
 
 ### 3.3 Votre espace
 
@@ -480,8 +488,10 @@ La rubrique **Mes passages** liste vos utilisations.
 
 | Question | Réponse |
 |---|---|
-| J'ai oublié mon mot de passe | Demandez une réinitialisation à votre entreprise ou à Damascino. Vous recevrez un nouveau mot de passe temporaire. |
-| « Compte temporairement bloqué » | Après 5 essais erronés, attendez 15 minutes, ou demandez une réinitialisation. |
+| Je n'ai pas reçu le SMS | Vérifiez le numéro saisi, puis touchez **Renvoyer un code** après 60 secondes (3 codes par heure au maximum). |
+| « Ce numéro ne figure pas sur la liste » | Votre numéro n'a pas été transmis par votre entreprise, ou il a changé : contactez votre service RH. |
+| « Trop d'essais incorrects » | Après 3 codes faux, le code est bloqué : demandez-en un nouveau. |
+| J'ai changé de téléphone | Installez l'application sur le nouveau téléphone et demandez un code SMS : l'ancien est déconnecté. |
 | « Votre compte est connecté sur un autre appareil » | Reconnectez-vous sur le téléphone que vous utilisez. |
 | J'ai changé de numéro | Prévenez votre entreprise : votre identifiant sera mis à jour. |
 | Le bouton « Utiliser mon avantage » est grisé | L'avantage du jour est déjà utilisé, ou votre convention n'est pas active. |

@@ -130,6 +130,9 @@ Chez le fournisseur du domaine de Damascino, créer un enregistrement **DNS de t
 3. Le script installe Docker, génère des secrets, obtient le certificat HTTPS et démarre tout (15 à 20 minutes).
    À la fin, il affiche **une seule fois** le mot de passe initial de l'administrateur : **notez-le**.
 4. Vérifier : `https://privileges.damascino.tn` affiche la page de téléchargement de l'application.
+5. **Envoi des SMS** (gratuit) : préparer un téléphone Android avec une puce tunisienne et l'application
+   *SMS Gateway for Android*, puis renseigner `SMS_GATEWAY_USER` et `SMS_GATEWAY_PASSWORD` dans `/opt/damascino/.env`
+   et relancer la commande d'installation. Pas à pas : [docs/SMS.md](../SMS.md).
 
 Le serveur sauvegarde la base **chaque nuit** (`/var/backups/damascino`, 30 jours d'historique).
 
@@ -204,8 +207,9 @@ En attendant, les utilisateurs d'iPhone ne peuvent pas utiliser le programme.
    catégories, nombre de passages par jour / semaine / mois).
 6. Fiche du partenaire → **Importer une liste** (Excel ou CSV : Nom, Prénom, Téléphone ; **Télécharger le modèle**
    pour le format).
-7. **Exporter les accès** (identifiants + mots de passe temporaires) et **Copier le lien** d'activation : les envoyer
-   au responsable du partenaire avec la [partie 3 du manuel](MANUEL_UTILISATION.md#partie-3--guide-du-bénéficiaire-à-remettre-aux-collaborateurs).
+7. **Copier le lien** d'activation et l'envoyer au responsable du partenaire : ses collaborateurs s'activent avec
+   leur numéro et un code SMS (configuration de l'envoi : [docs/SMS.md](../SMS.md)). L'export des accès (mots de passe
+   temporaires) reste disponible en secours. Joindre la [partie 3 du manuel](MANUEL_UTILISATION.md#partie-3--guide-du-bénéficiaire-à-remettre-aux-collaborateurs).
 
 ---
 
@@ -218,8 +222,8 @@ garde qu'un compte connecté à la fois.
 |---|---|---|---|
 | 1 | Administration | Créer un partenaire (convention en cours) et un bénéficiaire (**Ajouter**) | Fenêtre *Accès généré* avec identifiant et mot de passe temporaire |
 | 2 | Administration | **Comptes** → créer `caisse1` / PIN `1234` | Compte dans la liste |
-| 3 | Téléphone client | **Je suis bénéficiaire** → identifiant + mot de passe temporaire | Écran *Bienvenue !* : choix du mot de passe |
-| 4 | Téléphone client | Choisir le mot de passe → **Enregistrer** | Espace avec **Disponible** et −20 % |
+| 3 | Téléphone client | **Je suis bénéficiaire** → numéro du bénéficiaire → **Recevoir le code par SMS** | SMS reçu (en test : code affiché dans un bandeau orange) |
+| 4 | Téléphone client | Saisir le code → **Valider** | Espace avec **Disponible** et −20 % |
 | 5 | Téléphone client | **Utiliser mon avantage** | QR code, compte à rebours, heure qui défile |
 | 6 | Téléphone caisse | **Personnel Damascino** → `caisse1` / `1234` → autoriser la caméra | Scanner ouvert |
 | 7 | Téléphone caisse | Viser le QR du client | Écran vert **Avantage valide** avec le nom du client |
@@ -279,6 +283,9 @@ Compte Google Play Console (25 $ une fois), puis version *app bundle* avec EAS :
 | « Compte temporairement bloqué » | 5 mots de passe faux | Attendre 15 minutes, ou réinitialiser |
 | Mot de passe **admin** perdu | — | Test : `bash infra/reset-admin.sh` dans le Codespace ; Production : `sudo bash infra/reset-admin.sh` dans `/opt/damascino` sur le serveur. Données conservées |
 | Mot de passe d'un **bénéficiaire** ou **caissier** perdu | — | Administration → **Bénéficiaires** → *Réinitialiser* ; **Comptes** → nouveau PIN |
+| Application : « L'envoi du SMS a échoué » (production) | Téléphone passerelle éteint, hors ligne ou sans crédit SMS, ou identifiants absents du `.env` | Vérifier le téléphone (*Online* dans SMS Gateway), son forfait, puis `SMS_GATEWAY_USER` / `SMS_GATEWAY_PASSWORD` ([docs/SMS.md](../SMS.md)) |
+| Aucun SMS en test | Normal : en test, aucun SMS n'est envoyé | Le code s'affiche dans le bandeau orange de l'application |
+| « Nombre maximal de codes atteint » | 3 codes demandés pour ce numéro dans l'heure | Attendre une heure |
 | La caméra ne s'ouvre pas | Autorisation refusée | Paramètres Android → Applications → Privilèges → Autorisations → Caméra |
 | « Trop de tentatives de connexion » | Plus de 100 échecs en 10 min depuis la même connexion | Attendre 10 minutes |
 | Installation Android impossible | Source non autorisée, ou ancienne version signée autrement | Autoriser la source (§ 4.1) ; désinstaller l'ancienne version |
@@ -291,6 +298,7 @@ Compte Google Play Console (25 $ une fois), puis version *app bundle* avec EAS :
 |---|---|---|
 | Site / administration | `https://musical-goggles-7wqpvxv5jgq3pvqg-3000.app.github.dev/admin/connexion` | `https://privileges.damascino.tn/admin/connexion` |
 | Application Android | `github.com/bah13-a/damscino/releases/download/android-test/damascino-privileges-test.apk` | `github.com/bah13-a/damscino/releases/download/android-prod/damascino-privileges.apk` |
+| Codes SMS | Affichés dans l'application (aucun SMS envoyé) | Envoyés par le téléphone *SMS Gateway for Android* |
 | Admin initial | `admin` / `Damascino2026!` | `admin` / mot de passe affiché à l'installation |
 | Démarrer | https://github.com/codespaces → ouvrir le Codespace | Toujours allumé |
 | Mettre à jour le serveur | `git pull && docker compose up -d --build` | `sudo -E bash deploy.sh privileges.damascino.tn` |

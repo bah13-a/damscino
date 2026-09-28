@@ -71,6 +71,8 @@ test.describe('Intégration · événements entre microservices', () => {
     const totals = await propagated('privilege → reporting (statistiques)', async () => {
       const t = (await api.call<{ totals: Totals }>('GET', `/api/reporting/statistics?partnerId=${b.partner.id}`, b.admin)).totals;
       expect(t.redemptions).toBe(1);
+      // activation (identity) and passage (privilege) come from two independent outboxes
+      expect(t.activated).toBe(1);
       return t;
     });
     expect(totals).toMatchObject({ authorized: 1, activated: 1, activeUsers: 1, redemptions: 1, dishTotal: 40, discountTotal: 8 });

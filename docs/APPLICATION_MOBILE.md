@@ -5,7 +5,7 @@ ne sert plus qu'à l'**administration** ; pour les autres, il affiche la page de
 
 | | Application mobile (`mobile/`) | Site web (`frontend/`) |
 |---|---|---|
-| Bénéficiaire | Connexion, mot de passe, avantage du jour, QR code, historique | Page de téléchargement (`/`, lien d'activation `/connexion?p=…`) |
+| Bénéficiaire | Activation par code SMS (mot de passe en secours), avantage du jour, QR code, historique | Page de téléchargement (`/`, lien d'activation `/connexion?p=…`) |
 | Personnel de caisse | Connexion (PIN), scanner caméra, consignes de remise en caisse | Page de téléchargement (`/personnel`) |
 | Administration | — | Tout le back-office (`/admin`) |
 
