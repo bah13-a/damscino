@@ -147,6 +147,16 @@ cd frontend && npm run lint && npm run typecheck && npm run build
 cd mobile && npm run typecheck
 ```
 
+### Tests d'intégration et de performance
+
+- `npx playwright test --project=integration` (dans `e2e/`) : 12 scénarios au niveau de l'API qui vérifient les échanges
+  entre microservices (propagation des événements et délais, projections du reporting, rejeu, droits par rôle à travers
+  la gateway, jetons, session unique, écritures concurrentes) et la **résilience à une panne de RabbitMQ** (activée avec
+  `E2E_BROKER_STOP` / `E2E_BROKER_START`).
+- `npm run perf` (dans `e2e/`) : test de charge des parcours clés (connexion, espace, QR, passage en caisse, statistiques),
+  percentiles de latence, débit, erreurs et contrôles métier sous charge (`PERF_USERS`, `PERF_TILLS`, `PERF_PEAK`).
+- Dernier rapport : [docs/tests/RAPPORT_TESTS.md](docs/tests/RAPPORT_TESTS.md).
+
 ### Tests de bout en bout (Playwright)
 
 54 scénarios sur le site, l'application mobile, la remise en caisse, le rapprochement et l'API caisse, contre une stack démarrée (locale, Codespace ou serveur) : connexion et changement de mot

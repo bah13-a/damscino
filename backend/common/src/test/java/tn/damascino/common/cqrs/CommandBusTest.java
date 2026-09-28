@@ -41,9 +41,9 @@ class CommandBusTest {
     }
 
     @Test
-    void givesUpAfterThreeAttempts() {
+    void givesUpAfterTheMaximumNumberOfAttempts() {
         IncrementHandler handler = new IncrementHandler();
-        assertThatThrownBy(() -> bus(handler).dispatch(new Increment(5))).isInstanceOf(OptimisticLockingFailureException.class);
-        assertThat(handler.calls.get()).isEqualTo(3);
+        assertThatThrownBy(() -> bus(handler).dispatch(new Increment(20))).isInstanceOf(OptimisticLockingFailureException.class);
+        assertThat(handler.calls.get()).isEqualTo(CommandBus.MAX_ATTEMPTS);
     }
 }

@@ -33,6 +33,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], viewport: { width: 1360, height: 900 } },
     },
     {
+      // API only, no browser: cross-service integration through the gateway
+      name: 'integration',
+      testMatch: /integration-.*\.spec\.ts/,
+    },
+    {
       name: 'app',
       testMatch: /(beneficiary|scanner)-.*\.spec\.ts/,
       use: { ...devices['Pixel 7'], baseURL: process.env.E2E_APP_URL ?? 'http://localhost:8095' },

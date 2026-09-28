@@ -2,6 +2,7 @@ package tn.damascino.common.web;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -44,6 +45,13 @@ public class GlobalExceptionHandler {
             }
         }
         return ResponseEntity.badRequest().body(new ApiError("BAD_REQUEST", "Requête invalide"));
+    }
+
+    /** Still conflicting after the command bus retries: the client is told to retry, not shown a server error. */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handle(OptimisticLockingFailureException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiError("CONCURRENT_UPDATE", "Cette fiche vient d'être modifiée en même temps par quelqu'un d'autre. Réessayez."));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

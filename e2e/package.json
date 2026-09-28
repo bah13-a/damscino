@@ -6,7 +6,9 @@
   "scripts": {
     "test": "playwright test",
     "report": "playwright show-report",
-    "build:app": "cd ../mobile && npm ci && EXPO_PUBLIC_API_URL=${E2E_BASE_URL:-http://localhost:3000} npx expo export -p web --output-dir dist"
+    "build:app": "cd ../mobile && npm ci && EXPO_PUBLIC_API_URL=${E2E_BASE_URL:-http://localhost:3000} npx expo export -p web --output-dir dist",
+    "perf": "node perf/load-test.mjs",
+    "test:integration": "playwright test --project=integration"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
