@@ -175,7 +175,8 @@ ticket manquant). Toutes les autres réponses sont en `200` avec `status`.
 ## 6. Recette
 
 1. Créer un poste « Caisse recette » et un bénéficiaire de test (Administration).
-2. Sur un téléphone, se connecter à `/connexion` avec ce bénéficiaire et ouvrir « Utiliser mon avantage ».
+2. Sur un téléphone, ouvrir l'application Damascino Privilèges, s'activer avec ce bénéficiaire (code SMS) et toucher
+   « Utiliser mon avantage ».
 3. Côté caisse, dérouler les cas suivants, chacun étant vérifié dans Administration → Utilisations (canal
    « Caisse », n° de ticket, plat remisé) et Journal :
 
