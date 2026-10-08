@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tn.damascino.common.cqrs.CommandBus;
 import tn.damascino.common.cqrs.QueryBus;
 import tn.damascino.common.security.SecuritySupport;
+import tn.damascino.privilege.application.DailyQrService;
 import tn.damascino.privilege.application.ScanResult;
 import tn.damascino.privilege.application.command.ConfirmRedemptionCommand;
 import tn.damascino.privilege.application.command.GenerateQrCommand;
@@ -24,10 +25,12 @@ public class PrivilegeController {
 
     private final CommandBus commands;
     private final QueryBus queries;
+    private final DailyQrService dailyQrService;
 
-    public PrivilegeController(CommandBus commands, QueryBus queries) {
+    public PrivilegeController(CommandBus commands, QueryBus queries, DailyQrService dailyQrService) {
         this.commands = commands;
         this.queries = queries;
+        this.dailyQrService = dailyQrService;
     }
 
     public record ScanRequest(@NotBlank String token) {
@@ -59,5 +62,16 @@ public class PrivilegeController {
     public ScanResult confirm(@Valid @RequestBody ConfirmRequest request) {
         return commands.dispatch(new ConfirmRedemptionCommand(SecuritySupport.currentUser(), request.token(),
                 request.dishPrice()));
+    }
+
+    public record DailyQrResponse(String qrCode) {
+    }
+
+    /** QR code of the day, renewed at midnight. */
+    @GetMapping("/qr/daily")
+    public DailyQrResponse dailyQr() {
+        var user = SecuritySupport.currentUser();
+        String qrCode = dailyQrService.getOrGenerateDailyQr(user.beneficiaryId());
+        return new DailyQrResponse(qrCode);
     }
 }

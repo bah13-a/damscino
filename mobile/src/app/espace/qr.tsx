@@ -49,9 +49,21 @@ export default function QrScreen() {
 
   const refreshQr = useCallback(async () => {
     try {
-      const code = await api<QrCode>('/api/privileges/qr', { method: 'POST' });
+      const response = await api<{ qrCode: string }>('/api/privileges/qr/daily');
       fetchedAt.current = Date.now();
-      setQr(code);
+      // Calculate seconds until midnight (Tunisia timezone)
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - now.getTime()) / 1000);
+
+      setQr({
+        token: response.qrCode,
+        expiresAt: new Date(fetchedAt.current + 24 * 60 * 60 * 1000).toISOString(),
+        refreshInSeconds: secondsUntilMidnight,
+        serverTime: new Date(fetchedAt.current).toISOString(),
+      });
       setError(null);
     } catch (e) {
       setQr(null);
@@ -142,10 +154,7 @@ export default function QrScreen() {
               {qr ? <QRCode value={qr.token} size={250} ecl="M" color={colors.ink} backgroundColor={colors.white} /> : <Spinner />}
             </View>
             <T variant="muted" style={{ textAlign: 'center' }}>
-              Présentez ce code en caisse · nouveau code dans{' '}
-              <T style={{ fontFamily: fonts.semibold }} testID="qr-countdown">
-                {remaining}s
-              </T>
+              Présentez ce code en caisse · nouveau code à minuit
             </T>
             <T variant="small" style={{ textAlign: 'center' }}>
               Valable pour un seul plat éligible. Les captures d’écran sont bloquées et ne fonctionneraient pas.
