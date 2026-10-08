@@ -22,9 +22,35 @@ Deux modes, qui peuvent coexister :
 3. Créer un compte « Personnel scanner » par caissier (Administration → Comptes) et installer l'Espace personnel sur
    la tablette ou le téléphone de chaque caisse.
 
+### Alternative : validation du QR par API (sans tableau)
+
+Si votre système till peut appeler une API HTTP, vous pouvez automatiser la validation du QR code sans tablette :
+
+```bash
+curl -X POST https://damascino-privileges.onrender.com/api/pos/v1/validate-qr \
+  -H "Content-Type: application/json" \
+  -d '{
+    "qrCode": "DP1.eyJiIjoiNTIz..."
+  }'
+```
+
+Réponse en cas de succès :
+```json
+{
+  "valid": true,
+  "discountName": "Damascino Privilèges",
+  "discountPercent": 20,
+  "clientName": "Ahmed Khalil"
+}
+```
+
+Le caissier peut alors appliquer directement la remise dans la caisse sans saisie manuelle du pourcentage.
+
 ### Au quotidien, en caisse
 
-1. Le client présente son QR code ; le caissier le scanne avec la tablette. Écran vert « Avantage valide » : nom,
+**Note** : Le QR code est renouvelé automatiquement chaque jour à minuit. Un même QR code est valide pour une seule utilisation.
+
+1. Le client présente son QR code (renouvelé à minuit chaque jour) ; le caissier le scanne avec la tablette. Écran vert « Avantage valide » : nom,
    partenaire, −20 % sur un plat éligible.
 2. Il saisit le prix du plat (ex. 40 DT) et confirme.
 3. La tablette affiche **« À saisir maintenant dans la caisse »**, par exemple :
@@ -142,6 +168,7 @@ Réponse `CANCELLED`, ou `NOTHING_TO_CANCEL` si aucune remise Damascino n'existe
 
 | Règle | Détail |
 |---|---|
+| **QR code quotidien** | Le QR code est renouvelé automatiquement chaque jour à minuit. Un même QR est valide pour une seule utilisation par jour. |
 | **Réservation** | Le QR code du client n'est valable que 40 s (anti-capture d'écran), mais un ticket peut rester ouvert. `preview` réserve l'avantage pour le ticket pendant **15 min** ; `confirm` fonctionne même si le QR a expiré entre-temps. Sans confirmation, la réservation expire et l'avantage est rendu. |
 | **Ticket modifié** | Rappeler `preview` avec le même `ticketId` et le même QR : la remise est recalculée sur la même réservation. |
 | **Un avantage par ticket** | Un second QR sur le même ticket est refusé (`TICKET_ALREADY_DISCOUNTED`). |
