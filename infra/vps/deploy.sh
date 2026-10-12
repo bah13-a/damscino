@@ -32,7 +32,7 @@ log "3/7 Pare-feu : ports 80 et 443"
 # Oracle Ubuntu images block everything except SSH with iptables rules
 if command -v iptables >/dev/null 2>&1; then
   for port in 80 443; do
-    iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null || iptables -I INPUT 6 -p tcp --dport "$port" -j ACCEPT
+    iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null || iptables -I INPUT 6 -p tcp --dport "$port" -j ACCEPT 2>/dev/null || true
   done
   command -v netfilter-persistent >/dev/null 2>&1 && netfilter-persistent save >/dev/null 2>&1 || true
 fi
