@@ -18,7 +18,7 @@ services:
     ports: !reset []
     build:
       args:
-        NEXT_PUBLIC_ANDROID_APP_URL: ${ANDROID_APP_URL:-https://github.com/bah13-a/damscino/releases/download/android-prod/damascino-privileges.apk}
+        NEXT_PUBLIC_ANDROID_APP_URL: ${ANDROID_APP_URL:-/downloads/damascino-privileges.apk}
 
   caddy:
     image: caddy:2-alpine
@@ -32,8 +32,10 @@ services:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+      - app-downloads:/app/downloads
     depends_on: [frontend]
 
 volumes:
   caddy-data:
   caddy-config:
+  app-downloads:

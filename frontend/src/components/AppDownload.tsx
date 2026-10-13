@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState } from 'react';
 
 export const ANDROID_APP_URL =
-  process.env.NEXT_PUBLIC_ANDROID_APP_URL || 'https://github.com/bah13-a/damscino/releases/download/android-prod/damascino-privileges.apk';
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL || '/downloads/damascino-privileges.apk';
 export const IOS_APP_URL = process.env.NEXT_PUBLIC_IOS_APP_URL || '';
 
 /** Store buttons + a QR code to open this page on a phone when it is displayed on a computer. */

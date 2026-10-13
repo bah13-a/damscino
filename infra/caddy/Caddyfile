@@ -1,6 +1,16 @@
 # HTTPS in front of the PWA (the camera of the staff scanner requires HTTPS)
 {$DOMAIN} {
 	encode zstd gzip
+
+	# Serve APK downloads from /downloads/* → /app/downloads/*
+	@downloads path /downloads/*
+	handle @downloads {
+		uri strip_prefix /downloads
+		root * /app/downloads
+		file_server
+		header Content-Disposition "attachment; filename={http.request.uri.path}"
+	}
+
 	reverse_proxy frontend:3000
 	header {
 		Strict-Transport-Security "max-age=31536000"

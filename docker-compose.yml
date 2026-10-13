@@ -140,7 +140,7 @@ services:
       args:
         API_URL: http://gateway:8080
         # test environment (Codespace, local): the test app; docker-compose.prod.yml switches to the production app
-        NEXT_PUBLIC_ANDROID_APP_URL: ${ANDROID_APP_URL:-https://github.com/bah13-a/damscino/releases/download/android-test/damascino-privileges-test.apk}
+        NEXT_PUBLIC_ANDROID_APP_URL: ${ANDROID_APP_URL:-/downloads/damascino-privileges-test.apk}
         NEXT_PUBLIC_IOS_APP_URL: ${IOS_APP_URL:-}
     ports:
       - "3000:3000"
@@ -149,3 +149,4 @@ services:
 
 volumes:
   pgdata:
+  app-downloads:

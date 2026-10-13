@@ -75,6 +75,9 @@ fi
 grep -q '^SMS_GATEWAY_USER=' .env || printf 'SMS_GATEWAY_USER=\nSMS_GATEWAY_PASSWORD=\n' >> .env
 grep -q '^SMS_GATEWAY_USER=.\+' .env || echo "À faire : renseigner SMS_GATEWAY_USER et SMS_GATEWAY_PASSWORD dans $DIR/.env (voir docs/SMS.md), sinon les codes SMS ne partent pas."
 
+log "5.5/7 Téléchargement APK Android"
+bash "$DIR/infra/download-apk.sh" prod || echo "⚠ APK not yet available on GitHub Releases (first build?). Will be served once available."
+
 log "6/7 Construction et démarrage (10 à 20 minutes la première fois)"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
 
