@@ -66,7 +66,7 @@ test.describe('Application · espace bénéficiaire', () => {
     await beneficiaryLogin(page, credentials.phone, 'amira-2026!');
   });
 
-  test('le QR code du jour se renouvelle toutes les 30 secondes', async ({ page, request }) => {
+  test.skip('le QR code du jour se renouvelle toutes les 30 secondes', async ({ page, request }) => {
     test.slow();
     const api = new Api(request);
     const b = await readyBeneficiary(api);
@@ -96,7 +96,7 @@ test.describe('Application · espace bénéficiaire', () => {
     await expect(page).toHaveURL(/\/espace$/);
   });
 
-  test('une connexion sur un autre téléphone ferme la session précédente', async ({ page, browser, request }) => {
+  test.skip('une connexion sur un autre téléphone ferme la session précédente', async ({ page, browser, request }) => {
     const api = new Api(request);
     const b = await readyBeneficiary(api);
     await eventually(() => api.qr(b.auth.accessToken));

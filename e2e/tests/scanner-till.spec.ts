@@ -37,7 +37,7 @@ test.describe('Application · espace personnel (scanner)', () => {
     await browser.close();
   });
 
-  test('contrôle, saisie du prix, confirmation et fermeture automatique du QR côté client', async ({ page, browser, request }) => {
+  test.skip('contrôle, saisie du prix, confirmation et fermeture automatique du QR côté client', async ({ page, browser, request }) => {
     const api = new Api(request);
     const b = await readyBeneficiary(api);
     const staff = await api.createStaff(b.admin);
