@@ -144,9 +144,16 @@ services:
         NEXT_PUBLIC_IOS_APP_URL: ${IOS_APP_URL:-}
     ports:
       - "3000:3000"
+    volumes:
+      - app-downloads:/app/downloads
     depends_on:
       gateway: { condition: service_healthy }
 
 volumes:
   pgdata:
   app-downloads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./app-downloads
