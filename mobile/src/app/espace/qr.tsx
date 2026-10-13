@@ -49,22 +49,34 @@ export default function QrScreen() {
 
   const refreshQr = useCallback(async () => {
     try {
-      const response = await api<{ qrCode: string }>('/api/privileges/qr/daily');
-      fetchedAt.current = Date.now();
-      // Calculate seconds until midnight (Tunisia timezone)
-      const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - now.getTime()) / 1000);
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        try {
+          const response = await api<{ qrCode: string }>('/api/privileges/qr/daily');
+          fetchedAt.current = Date.now();
+          // Calculate seconds until midnight (Tunisia timezone)
+          const now = new Date();
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(0, 0, 0, 0);
+          const secondsUntilMidnight = Math.floor((tomorrow.getTime() - now.getTime()) / 1000);
 
-      setQr({
-        token: response.qrCode,
-        expiresAt: new Date(fetchedAt.current + 24 * 60 * 60 * 1000).toISOString(),
-        refreshInSeconds: secondsUntilMidnight,
-        serverTime: new Date(fetchedAt.current).toISOString(),
-      });
-      setError(null);
+          setQr({
+            token: response.qrCode,
+            expiresAt: new Date(fetchedAt.current + 24 * 60 * 60 * 1000).toISOString(),
+            refreshInSeconds: secondsUntilMidnight,
+            serverTime: new Date(fetchedAt.current).toISOString(),
+          });
+          setError(null);
+          return;
+        } catch (e) {
+          lastError = e;
+          if (e instanceof ApiError && e.code === 'QUOTA_REACHED') throw e;
+          if (e instanceof ApiError && e.status !== 404) throw e;
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+      throw lastError;
     } catch (e) {
       setQr(null);
       if (e instanceof ApiError && e.code === 'QUOTA_REACHED') setValidated(true);
