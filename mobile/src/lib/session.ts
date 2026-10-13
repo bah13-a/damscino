@@ -25,6 +25,7 @@ export async function loadSession(): Promise<Session | null> {
   } catch {
     current = null;
   }
+  listeners.forEach((listener) => listener(current));
   return current;
 }
 
@@ -56,6 +57,7 @@ export async function clearSession(): Promise<void> {
 
 export function onSessionChange(listener: Listener): () => void {
   listeners.add(listener);
+  listener(current);
   return () => {
     listeners.delete(listener);
   };
