@@ -8,6 +8,7 @@ COPY identity-service/pom.xml identity-service/
 COPY partner-service/pom.xml partner-service/
 COPY privilege-service/pom.xml privilege-service/
 COPY reporting-service/pom.xml reporting-service/
+COPY maven-settings.xml /root/.m2/settings.xml
 RUN mvn -q -B -pl reporting-service -am dependency:go-offline -DskipTests || true
 COPY . .
 RUN mvn -q -B -pl reporting-service -am package -DskipTests
