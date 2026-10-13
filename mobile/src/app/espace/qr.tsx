@@ -50,7 +50,7 @@ export default function QrScreen() {
   const refreshQr = useCallback(async () => {
     try {
       let lastError: unknown;
-      for (let attempt = 0; attempt < 15; attempt++) {
+      for (let attempt = 0; attempt < 30; attempt++) {
         try {
           const response = await api<{ qrCode: string }>('/api/privileges/qr/daily');
           fetchedAt.current = Date.now();
@@ -71,11 +71,12 @@ export default function QrScreen() {
           return;
         } catch (e) {
           lastError = e;
-          // Fail fast on QUOTA_REACHED (beneficiary already used their QR today)
           if (e instanceof ApiError && e.code === 'QUOTA_REACHED') throw e;
-          // Retry on transient errors (404, 503, etc.) but fail on auth errors (401, 403)
           if (e instanceof ApiError && (e.status === 401 || e.status === 403)) throw e;
-          if (attempt < 14) await new Promise((r) => setTimeout(r, 400));
+          if (attempt < 29) {
+            const delay = Math.min(1000 + attempt * 200, 5000);
+            await new Promise((r) => setTimeout(r, delay));
+          }
         }
       }
       throw lastError;
