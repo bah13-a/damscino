@@ -50,7 +50,7 @@ public class DailyQrService {
 
         BeneficiaryProjection beneficiary = beneficiaries.findById(beneficiaryId).orElse(null);
         if (beneficiary == null) {
-            throw ApiException.notFound("BENEFICIARY_NOT_FOUND", "Bénéficiaire non trouvé");
+            throw new ApiException(HttpStatus.NOT_FOUND, "BENEFICIARY_NOT_FOUND", "Bénéficiaire non trouvé");
         }
 
         Instant now = clock.instant();
