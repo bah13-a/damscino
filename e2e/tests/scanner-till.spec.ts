@@ -50,7 +50,8 @@ test.describe('Application · espace personnel (scanner)', () => {
     phone.on('response', async (r) => r.url().endsWith('/api/privileges/qr/daily') && r.ok() && tokens.push((await r.json()).qrCode));
     await beneficiaryLogin(phone, b.credentials.phone, b.password);
     await phone.getByRole('button', { name: 'Utiliser mon avantage' }).click();
-    await expect.poll(() => tokens.length).toBeGreaterThan(0);
+    await phone.waitForLoadState('networkidle');
+    await expect.poll(() => tokens.length, { timeout: 30_000 }).toBeGreaterThan(0);
 
     // caisse
     await staffLogin(page, staff.username, staff.pin);

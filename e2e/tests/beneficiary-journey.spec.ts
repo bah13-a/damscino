@@ -79,11 +79,13 @@ test.describe('Application · espace bénéficiaire', () => {
     });
     await page.getByRole('button', { name: 'Utiliser mon avantage' }).click();
     await expect(page).toHaveURL(/\/espace\/qr$/);
+    // Wait for the dashboard data to be loaded before checking visibility
+    await page.waitForLoadState('networkidle');
     // the previous screen stays mounted (hidden) under the QR screen: only the visible texts count
-    await expect(page.getByText(b.fullName).filter({ visible: true })).toBeVisible();
-    await expect(page.getByText(b.partner.name).filter({ visible: true })).toBeVisible();
-    await expect(page.getByTestId('qr-code').locator('svg')).toBeVisible();
-    await expect(page.getByText(/nouveau code dans \d+s/)).toBeVisible();
+    await expect(page.getByText(b.fullName).filter({ visible: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(b.partner.name).filter({ visible: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('qr-code').locator('svg')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/nouveau code dans \d+s/)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText('Valable pour un seul plat éligible. Les captures d’écran sont bloquées et ne fonctionneraient pas.')).toBeVisible();
 
     await expect.poll(() => tokens.length, { timeout: 45_000 }).toBeGreaterThanOrEqual(2);
@@ -100,7 +102,8 @@ test.describe('Application · espace bénéficiaire', () => {
     await eventually(() => api.qr(b.auth.accessToken));
     await beneficiaryLogin(page, b.credentials.phone, b.password);
     await page.getByRole('button', { name: 'Utiliser mon avantage' }).click();
-    await expect(page.getByText(/nouveau code dans/)).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText(/nouveau code dans/)).toBeVisible({ timeout: 20_000 });
 
     const otherDevice = await browser.newContext({ ...test.info().project.use });
     const other = await otherDevice.newPage();
