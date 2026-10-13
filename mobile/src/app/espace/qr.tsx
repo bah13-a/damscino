@@ -89,7 +89,12 @@ export default function QrScreen() {
 
   useEffect(() => {
     refreshQr();
-    api<Dashboard>('/api/privileges/me').then(setDashboard).catch(() => undefined);
+    // Load dashboard data without blocking QR display
+    api<Dashboard>('/api/privileges/me')
+      .then(setDashboard)
+      .catch(() => {
+        // Dashboard is optional - proceed without it
+      });
   }, [refreshQr]);
 
   // renew the code on the interval announced by the server
