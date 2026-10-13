@@ -154,7 +154,10 @@ export default function QrScreen() {
               {qr ? <QRCode value={qr.token} size={250} ecl="M" color={colors.ink} backgroundColor={colors.white} /> : <Spinner />}
             </View>
             <T variant="muted" style={{ textAlign: 'center' }}>
-              Présentez ce code en caisse · nouveau code à minuit
+              Présentez ce code en caisse · nouveau code dans{' '}
+              <T style={{ fontFamily: fonts.semibold }} testID="qr-countdown">
+                {remaining}s
+              </T>
             </T>
             <T variant="small" style={{ textAlign: 'center' }}>
               Valable pour un seul plat éligible. Les captures d’écran sont bloquées et ne fonctionneraient pas.

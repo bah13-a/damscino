@@ -47,7 +47,7 @@ test.describe('Application · espace personnel (scanner)', () => {
     const phoneContext = await browser.newContext({ ...test.info().project.use });
     const phone = await phoneContext.newPage();
     const tokens: string[] = [];
-    phone.on('response', async (r) => r.url().endsWith('/api/privileges/qr') && r.ok() && tokens.push((await r.json()).token));
+    phone.on('response', async (r) => r.url().endsWith('/api/privileges/qr/daily') && r.ok() && tokens.push((await r.json()).qrCode));
     await beneficiaryLogin(phone, b.credentials.phone, b.password);
     await phone.getByRole('button', { name: 'Utiliser mon avantage' }).click();
     await expect.poll(() => tokens.length).toBeGreaterThan(0);

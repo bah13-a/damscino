@@ -75,7 +75,7 @@ test.describe('Application · espace bénéficiaire', () => {
 
     const tokens: string[] = [];
     page.on('response', async (response) => {
-      if (response.url().endsWith('/api/privileges/qr') && response.ok()) tokens.push((await response.json()).token);
+      if (response.url().endsWith('/api/privileges/qr/daily') && response.ok()) tokens.push((await response.json()).qrCode);
     });
     await page.getByRole('button', { name: 'Utiliser mon avantage' }).click();
     await expect(page).toHaveURL(/\/espace\/qr$/);

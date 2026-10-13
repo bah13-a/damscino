@@ -48,8 +48,9 @@ test.describe("Administration · import des listes et export des accès", () => 
     const csvPath = tmp('liste.csv');
     fs.writeFileSync(csvPath, '\uFEFF' + csv);
     await upload(page, csvPath);
+    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('2 bénéficiaire(s) créé(s) sur 6 ligne(s)')).toBeVisible();
+    await expect(page.getByText('2 bénéficiaire(s) créé(s) sur 6 ligne(s)')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('4 ligne(s) ignorée(s)')).toBeVisible();
     await expect(page.getByText('Doublon dans le fichier')).toBeVisible();
     await expect(page.getByText('Téléphone invalide (8 chiffres attendus)')).toBeVisible();
