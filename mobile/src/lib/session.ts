@@ -57,6 +57,7 @@ export async function clearSession(): Promise<void> {
 
 export function onSessionChange(listener: Listener): () => void {
   listeners.add(listener);
+  // Notify listener immediately with current session state
   listener(current);
   return () => {
     listeners.delete(listener);

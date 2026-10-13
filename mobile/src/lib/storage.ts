@@ -7,21 +7,35 @@ import { Platform } from 'react-native';
  */
 export const storage = {
   async get(key: string): Promise<string | null> {
-    if (Platform.OS === 'web') return globalThis.localStorage?.getItem(key) ?? null;
-    return SecureStore.getItemAsync(key);
+    try {
+      if (Platform.OS === 'web') {
+        return globalThis.localStorage?.getItem(key) ?? null;
+      }
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
   },
   async set(key: string, value: string): Promise<void> {
-    if (Platform.OS === 'web') {
-      globalThis.localStorage?.setItem(key, value);
-      return;
+    try {
+      if (Platform.OS === 'web') {
+        globalThis.localStorage?.setItem(key, value);
+        return;
+      }
+      await SecureStore.setItemAsync(key, value, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
+    } catch {
+      // Silently fail on storage errors to prevent blocking the app
     }
-    await SecureStore.setItemAsync(key, value, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
   },
   async remove(key: string): Promise<void> {
-    if (Platform.OS === 'web') {
-      globalThis.localStorage?.removeItem(key);
-      return;
+    try {
+      if (Platform.OS === 'web') {
+        globalThis.localStorage?.removeItem(key);
+        return;
+      }
+      await SecureStore.deleteItemAsync(key);
+    } catch {
+      // Silently fail on removal errors
     }
-    await SecureStore.deleteItemAsync(key);
   },
 };
