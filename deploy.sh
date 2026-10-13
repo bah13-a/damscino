@@ -38,7 +38,8 @@ GITHUB_REPO="bah13-a/damscino"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 RELEASE_TAG="android-test"
 APK_FILENAME="damascino-privileges-test.apk"
-DOWNLOADS_DIR="./app-downloads"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DOWNLOADS_DIR="$SCRIPT_DIR/app-downloads"
 
 log_info "Pulling latest code from repository..."
 git fetch origin
@@ -50,6 +51,7 @@ log_success "Code updated"
 log_info "Setting up downloads directory..."
 mkdir -p "$DOWNLOADS_DIR"
 log_success "Downloads directory ready at $DOWNLOADS_DIR"
+log_info "APK will be stored at: $DOWNLOADS_DIR/$APK_FILENAME"
 
 # Download APK from GitHub release
 log_info "Downloading APK from GitHub release '$RELEASE_TAG'..."
