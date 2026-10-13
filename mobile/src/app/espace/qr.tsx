@@ -160,19 +160,12 @@ export default function QrScreen() {
             <Alert>{error}</Alert>
             <Button title="Retour à mon espace" onPress={() => router.replace('/espace')} />
           </Card>
-        ) : !qr ? (
-          <Card style={styles.center}>
-            <Spinner />
-            <T variant="muted" style={{ textAlign: 'center', marginTop: 16 }}>
-              Chargement du code QR...
-            </T>
-          </Card>
         ) : (
           <Card style={styles.center}>
             <T variant="title">{dashboard?.fullName ?? session.displayName}</T>
             {dashboard?.partnerName ? <T variant="muted">{dashboard.partnerName}</T> : null}
             <View style={styles.qr} testID="qr-code" accessibilityLabel="QR code à présenter en caisse">
-              <QRCode value={qr.token} size={250} ecl="M" color={colors.ink} backgroundColor={colors.white} />
+              {qr ? <QRCode value={qr.token} size={250} ecl="M" color={colors.ink} backgroundColor={colors.white} /> : <Spinner />}
             </View>
             <T variant="muted" style={{ textAlign: 'center' }}>
               Présentez ce code en caisse · nouveau code dans{' '}
