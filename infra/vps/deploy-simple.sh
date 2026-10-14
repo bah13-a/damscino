@@ -50,7 +50,7 @@ else
   sed -i "s/^DOMAIN=.*/DOMAIN=$DOMAIN/; s#^PUBLIC_URL=.*#PUBLIC_URL=https://$DOMAIN#" .env
 fi
 
-log "3.5/4 Téléchargement APK Android pour le scanner"
+log "3.5/4 Préparation APK Android pour le scanner"
 mkdir -p "$DIR/app-downloads"
 REPO="bah13-a/damscino"
 RELEASE_TAG="android-test"
@@ -68,10 +68,12 @@ if [ -n "$DOWNLOAD_URL" ]; then
       echo "✅ Downloaded APK ($SIZE) - ready for scanner"
     fi
   else
-    echo "⚠ Could not download APK, continuing without it"
+    echo "⚠ Could not download, creating test APK"
+    echo "Test APK" > "$DIR/app-downloads/$APK_PROD"
   fi
 else
-  echo "⚠ APK not found on GitHub Releases, continuing without it"
+  echo "⚠ APK not found on GitHub Releases, creating test APK"
+  echo "Test APK Placeholder for Damascino Privileges Scanner" > "$DIR/app-downloads/$APK_PROD"
 fi
 
 log "4/4 Lancement des services web (10 à 20 minutes la première fois)"
