@@ -8,15 +8,16 @@ export const ANDROID_APP_URL =
 export const IOS_APP_URL = process.env.NEXT_PUBLIC_IOS_APP_URL || '';
 
 export function AppDownload() {
-  const [baseUrl, setBaseUrl] = useState(‘’);
+  const [qrUrl, setQrUrl] = useState(‘’);
   useEffect(() => {
-    const url = new URL(window.location.href);
-    url.pathname = ‘’;
-    url.search = ‘’;
-    setBaseUrl(url.toString());
+    if (typeof window !== ‘undefined’) {
+      const base = new URL(window.location.href);
+      base.pathname = ‘’;
+      base.search = ‘’;
+      const fullUrl = new URL(ANDROID_APP_URL, base.toString()).toString();
+      setQrUrl(fullUrl);
+    }
   }, []);
-
-  const qrUrl = baseUrl ? new URL(ANDROID_APP_URL, baseUrl).toString() : ‘’;
 
   return (
     <div className="space-y-3">
