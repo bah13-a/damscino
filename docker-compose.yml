@@ -157,8 +157,3 @@ volumes:
       type: none
       o: bind
       device: ./app-downloads
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./app-downloads
