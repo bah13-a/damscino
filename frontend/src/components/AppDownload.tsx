@@ -43,13 +43,13 @@ export function AppDownload() {
         </a>
       ) : (
         <p className="rounded-xl border border-white/20 px-4 py-3 text-center text-sm text-white/70">
-          iPhone : l'application arrive sur l'App Store. En attendant, demandez un accès de test à Damascino.
+          iPhone : l&apos;application arrive sur l&apos;App Store. En attendant, demandez un accès de test à Damascino.
         </p>
       )}
       {qrUrl && (
         <div className="hidden items-center gap-4 rounded-2xl bg-white p-4 text-ink md:flex">
           <QRCodeSVG value={qrUrl} size={96} level="M" />
-          <p className="text-sm text-muted">Sur téléphone ? Scannez ce code pour télécharger l'APK directement.</p>
+          <p className="text-sm text-muted">Sur téléphone ? Scannez ce code pour télécharger l&apos;APK directement.</p>
         </div>
       )}
     </div>
