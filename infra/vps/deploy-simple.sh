@@ -63,20 +63,19 @@ APK_PROD="damascino-privileges.apk"
 
 echo "⬇ Downloading APK from GitHub Releases..."
 RELEASE_URL="https://api.github.com/repos/$REPO/releases/tags/$RELEASE_TAG"
-DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep -o "browser_download_url.*$APK_SOURCE" | cut -d'"' -f3 | head -1)
+DOWNLOAD_URL=$(curl -s "$RELEASE_URL" 2>/dev/null | grep -o "browser_download_url.*$APK_SOURCE" | cut -d'"' -f3 | head -1)
 
-if [ -z "$DOWNLOAD_URL" ]; then
-  echo "❌ Could not find $APK_SOURCE in release $RELEASE_TAG"
-  echo "   Make sure the GitHub Actions workflow has built and released the APK."
-else
-  echo "   URL: $DOWNLOAD_URL"
-  curl -fL -o "$DIR/app-downloads/$APK_PROD" "$DOWNLOAD_URL"
-  if [ -f "$DIR/app-downloads/$APK_PROD" ]; then
-    SIZE=$(du -h "$DIR/app-downloads/$APK_PROD" | cut -f1)
-    echo "✅ Downloaded APK ($SIZE) - ready for scanner"
+if [ -n "$DOWNLOAD_URL" ]; then
+  if curl -fL -o "$DIR/app-downloads/$APK_PROD" "$DOWNLOAD_URL" 2>/dev/null; then
+    if [ -f "$DIR/app-downloads/$APK_PROD" ]; then
+      SIZE=$(du -h "$DIR/app-downloads/$APK_PROD" | cut -f1)
+      echo "✅ Downloaded APK ($SIZE) - ready for scanner"
+    fi
   else
-    echo "❌ Failed to download APK"
+    echo "⚠ Could not download APK, continuing without it"
   fi
+else
+  echo "⚠ APK not found on GitHub Releases, continuing without it"
 fi
 
 log "4/4 Lancement des services web (10 à 20 minutes la première fois)"
