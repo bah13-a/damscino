@@ -8,7 +8,8 @@
 		uri strip_prefix /downloads
 		root * /app/downloads
 		file_server
-		header Content-Disposition "attachment; filename={http.request.uri.path}"
+		header Content-Type "application/vnd.android.package-archive"
+		header Content-Disposition "attachment; filename=damascino-privileges.apk"
 	}
 
 	reverse_proxy frontend:3000
