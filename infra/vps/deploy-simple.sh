@@ -4,7 +4,8 @@
 #   sudo bash deploy-simple.sh                      # HTTPS on <ip-publique>.sslip.io
 #   sudo bash deploy-simple.sh privileges.example.tn   # HTTPS on your own domain
 
-set -euo pipefail
+set -uo pipefail
+trap 'echo "Script error on line $LINENO"' ERR
 
 REPO="${REPO:-github.com/bah13-a/damscino.git}"
 BRANCH="${BRANCH:-claude/serene-faraday-tqmxat}"
