@@ -55,7 +55,29 @@ else
 fi
 
 log "3.5/4 Téléchargement APK Android pour le scanner"
-bash "$DIR/infra/download-apk.sh" prod || echo "⚠ APK not yet available on GitHub Releases (first build?). Will be served once available."
+mkdir -p "$DIR/app-downloads"
+REPO="bah13-a/damscino"
+RELEASE_TAG="android-test"
+APK_SOURCE="damascino-privileges-test.apk"
+APK_PROD="damascino-privileges.apk"
+
+echo "⬇ Downloading APK from GitHub Releases..."
+RELEASE_URL="https://api.github.com/repos/$REPO/releases/tags/$RELEASE_TAG"
+DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep -o "browser_download_url.*$APK_SOURCE" | cut -d'"' -f3 | head -1)
+
+if [ -z "$DOWNLOAD_URL" ]; then
+  echo "❌ Could not find $APK_SOURCE in release $RELEASE_TAG"
+  echo "   Make sure the GitHub Actions workflow has built and released the APK."
+else
+  echo "   URL: $DOWNLOAD_URL"
+  curl -fL -o "$DIR/app-downloads/$APK_PROD" "$DOWNLOAD_URL"
+  if [ -f "$DIR/app-downloads/$APK_PROD" ]; then
+    SIZE=$(du -h "$DIR/app-downloads/$APK_PROD" | cut -f1)
+    echo "✅ Downloaded APK ($SIZE) - ready for scanner"
+  else
+    echo "❌ Failed to download APK"
+  fi
+fi
 
 log "4/4 Lancement des services web (10 à 20 minutes la première fois)"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
