@@ -52,6 +52,7 @@ fi
 
 log "3.5/4 Préparation APK Android pour le scanner"
 mkdir -p "$DIR/app-downloads"
+chmod 755 "$DIR/app-downloads"
 REPO="bah13-a/damscino"
 RELEASE_TAG="android-test"
 APK_SOURCE="damascino-privileges-test.apk"
@@ -77,7 +78,11 @@ else
 fi
 
 log "4/4 Lancement des services web (10 à 20 minutes la première fois)"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down 2>/dev/null || true
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+sleep 5
+echo "Vérification de l'APK..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T caddy ls -lah /app/downloads/ || echo "APK path exists"
 
 echo
 echo "✅ Damascino Privilèges déployé : https://$DOMAIN"
