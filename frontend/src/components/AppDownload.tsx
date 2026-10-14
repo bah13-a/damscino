@@ -7,15 +7,22 @@ export const ANDROID_APP_URL =
   process.env.NEXT_PUBLIC_ANDROID_APP_URL || '/downloads/damascino-privileges.apk';
 export const IOS_APP_URL = process.env.NEXT_PUBLIC_IOS_APP_URL || '';
 
-/** Store buttons + a QR code to open this page on a phone when it is displayed on a computer. */
 export function AppDownload() {
-  const [pageUrl, setPageUrl] = useState('');
-  useEffect(() => setPageUrl(window.location.href), []);
+  const [baseUrl, setBaseUrl] = useState(‘’);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.pathname = ‘’;
+    url.search = ‘’;
+    setBaseUrl(url.toString());
+  }, []);
+
+  const qrUrl = baseUrl ? new URL(ANDROID_APP_URL, baseUrl).toString() : ‘’;
 
   return (
     <div className="space-y-3">
       <a
         href={ANDROID_APP_URL}
+        download="damascino-privileges.apk"
         className="flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 font-semibold text-brand-700 transition hover:bg-brand-50"
       >
         <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
@@ -38,10 +45,10 @@ export function AppDownload() {
           iPhone : l’application arrive sur l’App Store. En attendant, demandez un accès de test à Damascino.
         </p>
       )}
-      {pageUrl && (
+      {qrUrl && (
         <div className="hidden items-center gap-4 rounded-2xl bg-white p-4 text-ink md:flex">
-          <QRCodeSVG value={pageUrl} size={96} level="M" />
-          <p className="text-sm text-muted">Sur ordinateur ? Scannez ce code avec votre téléphone pour ouvrir cette page et installer l’application.</p>
+          <QRCodeSVG value={qrUrl} size={96} level="M" />
+          <p className="text-sm text-muted">Sur téléphone ? Scannez ce code pour télécharger l’APK directement.</p>
         </div>
       )}
     </div>
