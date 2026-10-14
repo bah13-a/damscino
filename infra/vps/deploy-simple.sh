@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# Simple deployment: just launch web and prepare APK for scanning
-# Usage:
-#   sudo bash deploy-simple.sh                      # HTTPS on <ip-publique>.sslip.io
-#   sudo bash deploy-simple.sh privileges.example.tn   # HTTPS on your own domain
-
 set -uo pipefail
 trap 'echo "Script error on line $LINENO"' ERR
 
