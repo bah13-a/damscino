@@ -32,10 +32,9 @@ services:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
-      - app-downloads:/app/downloads
+      - ./app-downloads:/app/downloads
     depends_on: [frontend]
 
 volumes:
   caddy-data:
   caddy-config:
-  app-downloads:
