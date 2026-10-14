@@ -6,21 +6,16 @@ import tn.damascino.common.cqrs.CommandHandler;
 import tn.damascino.privilege.application.ScanEvaluator;
 import tn.damascino.privilege.application.ScanEvaluator.Evaluation;
 import tn.damascino.privilege.application.ScanResult;
-import tn.damascino.privilege.infrastructure.tms.TmsIntegrationService;
 import tn.damascino.privilege.projection.BeneficiaryProjection;
 import tn.damascino.privilege.projection.PartnerProjection;
-
-import java.math.BigDecimal;
 
 @Component
 public class VerifyScanHandler implements CommandHandler<VerifyScanCommand, ScanResult> {
 
     private final ScanEvaluator evaluator;
-    private final TmsIntegrationService tmsService;
 
-    public VerifyScanHandler(ScanEvaluator evaluator, TmsIntegrationService tmsService) {
+    public VerifyScanHandler(ScanEvaluator evaluator) {
         this.evaluator = evaluator;
-        this.tmsService = tmsService;
     }
 
     @Override
@@ -32,9 +27,6 @@ public class VerifyScanHandler implements CommandHandler<VerifyScanCommand, Scan
         }
         BeneficiaryProjection b = evaluation.beneficiary();
         PartnerProjection p = evaluation.partner();
-
-        // Envoyer automatiquement la réduction à la caisse TMS
-        tmsService.sendDiscountNotification(command.token(), BigDecimal.valueOf(p.getDiscountPercent()));
 
         return new ScanResult(ScanResult.Status.VALID, null, "Avantage valide", b.fullName(), p.getName(),
                 p.getDiscountPercent(), p.getEligibleCategories(), p.getExcludedCategories(),
