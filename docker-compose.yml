@@ -16,6 +16,7 @@ x-backend-env: &backend-env
   JWT_SECRET: ${JWT_SECRET:-local-jwt-secret-change-me-please}
   JAVA_OPTS: *java-opts
   TZ: Africa/Tunis
+  TMS_URL: ${TMS_URL:-}
 
 services:
   postgres:
