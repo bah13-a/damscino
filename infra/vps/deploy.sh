@@ -123,13 +123,7 @@ setenv ANDROID_APP_URL "/downloads/$APK_FILE"
 case "$TOKEN" in ''|ghs_*) ;; *) setenv GITHUB_TOKEN "$TOKEN" ;; esac
 grep -q '^SMS_GATEWAY_USER=' .env || printf 'SMS_GATEWAY_USER=\nSMS_GATEWAY_PASSWORD=\n' >> .env
 chmod 600 .env
-if grep -q '^SMS_PROVIDER=twilio' .env; then
-  if ! grep -q '^TWILIO_ACCOUNT_SID=.\+' .env || ! grep -q '^TWILIO_AUTH_TOKEN=.\+' .env; then
-    warn "SMS Twilio incomplet : lancez sudo bash $DIR/infra/configure-sms.sh twilio (docs/SMS.md)."
-  fi
-else
-  grep -q '^SMS_GATEWAY_USER=.\+' .env || warn "SMS non configuré : sudo bash $DIR/infra/configure-sms.sh twilio (ou android-gateway), voir docs/SMS.md. Sinon les codes SMS ne partent pas."
-fi
+grep -q '^SMS_GATEWAY_USER=.\+' .env || warn "Renseignez SMS_GATEWAY_USER et SMS_GATEWAY_PASSWORD dans $DIR/.env (docs/SMS.md), sinon les codes SMS ne partent pas."
 echo "Domaine : $DOMAIN"
 
 log "6/9 Application Android (release android-prod)"

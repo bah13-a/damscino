@@ -52,7 +52,6 @@ damascino:
   sms:
     # log: test environment, nothing is sent (code written to the log, shown in the test app)
     # android-gateway: "SMS Gateway for Android" (free, open source) on a phone with a Tunisian SIM card
-    # twilio: Twilio (paid, professional), sender "DAMASCINO" or a Twilio number
     provider: ${SMS_PROVIDER:log}
     # test only: return the code to the app when provider=log, so the flow can be tried without SMS
     expose-codes: ${SMS_EXPOSE_CODES:false}
@@ -65,11 +64,3 @@ damascino:
       url: ${SMS_GATEWAY_URL:https://api.sms-gate.app/3rdparty/v1}
       username: ${SMS_GATEWAY_USER:}
       password: ${SMS_GATEWAY_PASSWORD:}
-    twilio:
-      api-url: ${TWILIO_API_URL:https://api.twilio.com}
-      account-sid: ${TWILIO_ACCOUNT_SID:}
-      auth-token: ${TWILIO_AUTH_TOKEN:}
-      # sender: alphanumeric name (e.g. DAMASCINO, max 11 characters) or Twilio number (+1…)
-      from: ${TWILIO_FROM:}
-      # optional, instead of TWILIO_FROM: a Messaging Service (MG…) that picks the sender
-      messaging-service-sid: ${TWILIO_MESSAGING_SERVICE_SID:}
