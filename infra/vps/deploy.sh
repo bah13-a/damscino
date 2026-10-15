@@ -67,7 +67,7 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q active; then ufw allow
 
 log "4/9 Code source ($BRANCH)"
 # never wait for a username/password: a refused token must stop with a clear message
-export GIT_TERMINAL_PROMPT=0
+export GIT_TERMINAL_PROMPT=0 GIT_PAGER=cat PAGER=cat
 TOKEN="${GITHUB_TOKEN:-}"
 [ -z "$TOKEN" ] && [ -f "$DIR/.env" ] && TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' "$DIR/.env" | tail -n1)"
 [ -z "$TOKEN" ] && [ -d "$DIR/.git" ] && TOKEN="$(git -C "$DIR" remote get-url origin | sed -n 's#^https://x-access-token:\([^@]*\)@.*#\1#p')"
@@ -85,7 +85,7 @@ else
   git -C "$DIR" remote set-url origin "https://$REPO"
 fi
 cd "$DIR"
-git log -1 --format='Version : %h — %s'
+git --no-pager log -1 --format='Version : %h — %s'
 
 log "5/9 Configuration (.env)"
 # a custom domain is kept; an <ip>.sslip.io address follows the current public IP
