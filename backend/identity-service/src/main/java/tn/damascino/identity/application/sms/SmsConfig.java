@@ -11,11 +11,18 @@ public class SmsConfig {
     public SmsSender smsSender(@Value("${damascino.sms.provider}") String provider,
                                @Value("${damascino.sms.gateway.url:}") String url,
                                @Value("${damascino.sms.gateway.username:}") String username,
-                               @Value("${damascino.sms.gateway.password:}") String password) {
+                               @Value("${damascino.sms.gateway.password:}") String password,
+                               @Value("${damascino.sms.twilio.api-url:}") String twilioUrl,
+                               @Value("${damascino.sms.twilio.account-sid:}") String twilioSid,
+                               @Value("${damascino.sms.twilio.auth-token:}") String twilioToken,
+                               @Value("${damascino.sms.twilio.from:}") String twilioFrom,
+                               @Value("${damascino.sms.twilio.messaging-service-sid:}") String twilioService) {
         return switch (provider) {
             case "log" -> new LogSmsSender();
             case "android-gateway" -> new AndroidGatewaySmsSender(url, username, password);
-            default -> throw new IllegalStateException("SMS_PROVIDER inconnu : " + provider + " (log ou android-gateway)");
+            case "twilio" -> new TwilioSmsSender(twilioUrl, twilioSid, twilioToken, twilioFrom, twilioService);
+            default -> throw new IllegalStateException(
+                    "SMS_PROVIDER inconnu : " + provider + " (log, android-gateway ou twilio)");
         };
     }
 }

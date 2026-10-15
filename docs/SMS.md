@@ -17,6 +17,32 @@ Le **mot de passe temporaire** reste une solution de secours (lien *J'ai un mot 
 désactivé dès que le bénéficiaire s'active par SMS. Le **personnel de caisse** garde identifiant + code PIN, et
 l'**administration** son identifiant + mot de passe sur le site.
 
+## Fournisseur professionnel : Twilio
+
+[Twilio](https://www.twilio.com) envoie les SMS sans téléphone à entretenir, avec le nom d'expéditeur
+**DAMASCINO**. Payant : environ 0,25 $ par SMS vers la Tunisie (tarif à vérifier sur twilio.com/sms/pricing/tn).
+
+### Mise en place (10 minutes)
+
+1. **Créer un compte** sur [twilio.com](https://www.twilio.com/try-twilio) et l'**approvisionner** (*Billing*) : un
+   compte d'essai n'envoie qu'aux numéros vérifiés.
+2. **Autoriser la Tunisie** : Console → *Messaging* → *Settings* → **Geo permissions** → cocher **Tunisia**.
+3. **Expéditeur** : le nom `DAMASCINO` (11 caractères maximum) convient pour la Tunisie. Si Twilio le refuse,
+   acheter un numéro Twilio (*Phone Numbers* → *Buy a number*) et l'utiliser comme expéditeur.
+4. Relever l'**Account SID** (`AC…`) et l'**Auth Token** : Console → *Account Info*.
+5. Sur le serveur :
+
+   ```bash
+   sudo bash /opt/damascino/infra/configure-sms.sh twilio
+   ```
+
+   Le script demande l'Account SID, l'Auth Token (non affiché), l'expéditeur, **vérifie les identifiants auprès de
+   Twilio**, propose un **SMS de test**, enregistre la configuration dans `.env` puis redémarre le service. En cas
+   de refus, il affiche la raison (pays non autorisé, expéditeur refusé…) et ne modifie rien.
+
+Les identifiants restent dans `/opt/damascino/.env` (lisible par root uniquement) et sont conservés par les mises à
+jour automatiques. Pour revenir au téléphone Android : `sudo bash /opt/damascino/infra/configure-sms.sh android-gateway`.
+
 ## Outil d'envoi gratuit : SMS Gateway for Android
 
 Aucun opérateur ni agrégateur n'envoie de SMS gratuitement. La solution gratuite retenue est
@@ -41,15 +67,9 @@ réduit à presque rien.
    **nom d'utilisateur** et un **mot de passe**.
 4. Dans les réglages Android : **désactiver l'optimisation de batterie** pour l'application (sinon Android peut la
    mettre en veille) et la laisser tourner en permanence.
-5. Sur le serveur, compléter le fichier `.env` :
-
-   ```bash
-   SMS_GATEWAY_USER=<nom d'utilisateur affiché par l'application>
-   SMS_GATEWAY_PASSWORD=<mot de passe affiché par l'application>
-   ```
-
-6. Redémarrer : `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d identity-service`.
-7. **Tester** : dans l'application Damascino Privilèges, saisir le numéro d'un bénéficiaire de test. Le SMS doit
+5. Sur le serveur : `sudo bash /opt/damascino/infra/configure-sms.sh android-gateway`, puis saisir le nom
+   d'utilisateur et le mot de passe affichés par l'application (le service redémarre tout seul).
+6. **Tester** : dans l'application Damascino Privilèges, saisir le numéro d'un bénéficiaire de test. Le SMS doit
    arriver en quelques secondes ; en cas d'échec, l'application affiche « L'envoi du SMS a échoué » et le journal
    `docker compose logs identity-service` indique la cause.
 
@@ -62,17 +82,20 @@ réduit à presque rien.
   indiquer `SMS_GATEWAY_URL=http://<adresse-du-téléphone>:8080`.
 - **Relais privé** : le relais cloud d'sms-gate.app peut être auto-hébergé ; indiquer alors son adresse dans
   `SMS_GATEWAY_URL`.
-- **Fournisseur professionnel** plus tard (volume important, nom d'expéditeur « DAMASCINO ») : l'envoi est isolé
-  dans l'interface `SmsSender` du service `identity-service` ; un nouveau fournisseur s'ajoute sans toucher au reste.
+- **Autre fournisseur** : l'envoi est isolé dans l'interface `SmsSender` du service `identity-service`
+  (`LogSmsSender`, `AndroidGatewaySmsSender`, `TwilioSmsSender`) ; un nouveau fournisseur s'ajoute sans toucher au reste.
 
 ## Environnements
 
 | Variable | Test (`docker-compose.yml`) | Production (`docker-compose.prod.yml`) |
 |---|---|---|
-| `SMS_PROVIDER` | `log` : aucun SMS, le code est écrit dans le journal | `android-gateway` |
+| `SMS_PROVIDER` | `log` : aucun SMS, le code est écrit dans le journal | `android-gateway` (défaut) ou `twilio` |
 | `SMS_EXPOSE_CODES` | `true` : l'application de test affiche le code (« Environnement de test : … ») | `false` (forcé) |
 | `SMS_GATEWAY_URL` | — | `https://api.sms-gate.app/3rdparty/v1` (défaut) |
 | `SMS_GATEWAY_USER`, `SMS_GATEWAY_PASSWORD` | — | identifiants affichés par l'application Android |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | — | identifiants Twilio (`twilio`) |
+| `TWILIO_FROM` | — | `DAMASCINO` ou un numéro Twilio |
+| `TWILIO_MESSAGING_SERVICE_SID` | — | facultatif (`MG…`), remplace `TWILIO_FROM` |
 | `SMS_CODE_TTL` | `5m` | `5m` |
 | `SMS_RESEND_DELAY` | `60s` | `60s` |
 | `SMS_MAX_PER_PHONE_HOUR` | `3` | `3` |
