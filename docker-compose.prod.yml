@@ -8,6 +8,8 @@ services:
     ports: !reset []
   gateway:
     ports: !reset []
+    environment:
+      SECURITY_LOGIN_THROTTLE_MAX_FAILURES: ${LOGIN_MAX_FAILURES_PER_IP:-100}
   identity-service:
     environment:
       # real SMS through "SMS Gateway for Android" (docs/SMS.md); the code is never returned to the app

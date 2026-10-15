@@ -138,6 +138,9 @@ services:
       PRIVILEGE_URL: http://privilege-service:8083
       REPORTING_URL: http://reporting-service:8084
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # failed logins tolerated per client address in 10 min: high in test (the automated tests retry logins while
+      # accounts propagate), 100 on the server (docker-compose.prod.yml)
+      SECURITY_LOGIN_THROTTLE_MAX_FAILURES: ${LOGIN_MAX_FAILURES_PER_IP:-1000}
       JAVA_OPTS: *java-opts
     ports:
       - "8080:8080"
