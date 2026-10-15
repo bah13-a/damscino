@@ -3,6 +3,27 @@ import { alertIn, Api, eventually, randomPhone, uid, WEB_URL } from './support';
 
 /** Activation of beneficiaries by SMS code (test environment: the code is shown in the app instead of being sent). */
 test.describe('Application · activation par SMS', () => {
+  test('avec un e-mail sur la liste du partenaire, le même code part aussi par e-mail', async ({ page, request }) => {
+    const api = new Api(request);
+    const admin = await api.admin();
+    const partner = await api.createPartner(admin);
+    const lastName = `Mail${uid()}`;
+    const credentials = await api.createBeneficiary(admin, partner.id, 'Sarra', lastName, `Sarra.${lastName}@Exemple.tn`);
+    await eventually(() => api.login('beneficiary', credentials.phone, credentials.temporaryPassword));
+
+    await page.goto(`/connexion?p=${partner.id}`);
+    await page.getByLabel('Numéro de téléphone').fill(credentials.phone);
+    await page.getByRole('button', { name: 'Recevoir le code par SMS' }).click();
+    await expect(
+      page.getByText(`Code envoyé par SMS au +216 •• ••• ${credentials.phone.slice(5)} et par e-mail à s•••@exemple.tn`),
+    ).toBeVisible();
+
+    const devCode = (await page.getByText(/Votre code est \d{6}/).textContent())!.match(/\d{6}/)![0];
+    await page.getByLabel('Code reçu par SMS').fill(devCode);
+    await page.getByRole('button', { name: 'Valider' }).click();
+    await expect(page).toHaveURL(/\/espace$/);
+  });
+
   test("lien d'activation du partenaire → numéro → code SMS → espace personnel", async ({ page, request }) => {
     const api = new Api(request);
     const admin = await api.admin();

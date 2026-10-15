@@ -103,8 +103,8 @@ export class Api {
     });
   }
 
-  createBeneficiary(token: string, partnerId: string, firstName = 'Amira', lastName = `Test${uid()}`) {
-    return this.call<Credentials>('POST', '/api/beneficiaries', token, { partnerId, firstName, lastName, phone: randomPhone() });
+  createBeneficiary(token: string, partnerId: string, firstName = 'Amira', lastName = `Test${uid()}`, email?: string) {
+    return this.call<Credentials>('POST', '/api/beneficiaries', token, { partnerId, firstName, lastName, phone: randomPhone(), email });
   }
 
   /** First login + mandatory password change; waits until the account reached the identity service. */

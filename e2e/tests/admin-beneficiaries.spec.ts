@@ -8,6 +8,7 @@ test.describe('Administration · bénéficiaires', () => {
     const partner = await api.createPartner(token);
     const lastName = `Mansour${uid()}`;
     const phone = randomPhone();
+    const email = `${lastName.toLowerCase()}@exemple.tn`;
 
     await adminLogin(page);
     await page.getByRole('link', { name: 'Bénéficiaires' }).first().click();
@@ -19,6 +20,7 @@ test.describe('Administration · bénéficiaires', () => {
     await form.getByLabel('Nom', { exact: true }).fill(lastName);
     await form.getByLabel('Prénom').fill('Yasmine');
     await form.getByLabel('Téléphone (identifiant)').fill(`+216 ${phone}`);
+    await form.getByLabel('E-mail (facultatif)').fill(email.toUpperCase());
     await form.getByRole('button', { name: 'Ajouter et générer les accès' }).click();
     const access = page.getByRole('dialog', { name: 'Accès généré' });
     await expect(access.getByText(phone.replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3'))).toBeVisible();
@@ -42,6 +44,7 @@ test.describe('Administration · bénéficiaires', () => {
     const row = page.getByRole('row', { name: new RegExp(lastName) });
     await expect(row).toBeVisible();
     await expect(row).toContainText('À activer');
+    await expect(row).toContainText(email);
     await expect(page.getByText('1 bénéficiaire(s)')).toBeVisible();
     await search.fill(phone.slice(2, 6));
     await expect(row).toBeVisible();
@@ -90,7 +93,7 @@ test.describe('Administration · bénéficiaires', () => {
     // export CSV filtré
     const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'CSV' }).click()]);
     const content = readText(await csv.path());
-    expect(content.split(/\r?\n/)[0]).toBe('Nom;Prénom;Téléphone;Partenaire;Statut;Compte activé;Activé le;Ajouté le');
-    expect(content).toContain(`${lastName};Yasmina;${phone};${partner.name};Actif;Non`);
+    expect(content.split(/\r?\n/)[0]).toBe('Nom;Prénom;Téléphone;E-mail;Partenaire;Statut;Compte activé;Activé le;Ajouté le');
+    expect(content).toContain(`${lastName};Yasmina;${phone};${email};${partner.name};Actif;Non`);
   });
 });
