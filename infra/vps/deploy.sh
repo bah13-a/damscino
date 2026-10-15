@@ -66,6 +66,8 @@ fi
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q active; then ufw allow 80,443/tcp >/dev/null; fi
 
 log "4/9 Code source ($BRANCH)"
+# never wait for a username/password: a refused token must stop with a clear message
+export GIT_TERMINAL_PROMPT=0
 TOKEN="${GITHUB_TOKEN:-}"
 [ -z "$TOKEN" ] && [ -f "$DIR/.env" ] && TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' "$DIR/.env" | tail -n1)"
 [ -z "$TOKEN" ] && [ -d "$DIR/.git" ] && TOKEN="$(git -C "$DIR" remote get-url origin | sed -n 's#^https://x-access-token:\([^@]*\)@.*#\1#p')"
