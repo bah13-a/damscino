@@ -1,55 +1,84 @@
 #!/usr/bin/env bash
-# Downloads the Android APK from GitHub Releases and stores it locally for serving.
-# Usage:
-#   ./infra/download-apk.sh [prod|test]
+# Downloads the Android app published by .github/workflows/mobile-apk.yml into app-downloads/,
+# which Caddy serves at https://<domaine>/downloads/<fichier>.apk (no restart needed after an update).
 #
-# The APK is placed in a Docker volume that Caddy serves at /downloads/
-
+#   sudo bash infra/download-apk.sh          # production app  (release android-prod)
+#   sudo bash infra/download-apk.sh test     # test app        (release android-test)
+#
+# The repository is private: GitHub answers "Not Found" without a token. The token (read access to the
+# repository contents) is taken from $GITHUB_TOKEN, else the GITHUB_TOKEN= line of .env, else the git clone.
+# The file in place is only replaced by a complete APK whose size and SHA-256 match the release.
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
-ENV="${1:-prod}"
-REPO="bah13-a/damscino"
+case "${1:-prod}" in
+  prod) TAG=android-prod; FILE=damascino-privileges.apk ;;
+  test) TAG=android-test; FILE=damascino-privileges-test.apk ;;
+  *) echo "Usage: $0 [prod|test]" >&2; exit 2 ;;
+esac
+REPO="${GITHUB_REPO:-bah13-a/damscino}"
+API="https://api.github.com/repos/$REPO"
 
-case "$ENV" in
-  prod)
-    RELEASE_TAG="android-prod"
-    APK_FILE="damascino-privileges.apk"
-    ;;
-  test)
-    RELEASE_TAG="android-test"
-    APK_FILE="damascino-privileges-test.apk"
-    ;;
-  *)
-    echo "Usage: $0 [prod|test]"
-    exit 1
-    ;;
+fail() { echo "❌ $*" >&2; exit 1; }
+
+TOKEN="${GITHUB_TOKEN:-}"
+[ -z "$TOKEN" ] && [ -f .env ] && TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' .env | tail -n1)"
+[ -z "$TOKEN" ] && TOKEN="$(git remote get-url origin 2>/dev/null | sed -n 's#^https://x-access-token:\([^@]*\)@.*#\1#p')"
+AUTH=()
+[ -n "$TOKEN" ] && AUTH=(-H "Authorization: Bearer $TOKEN")
+
+echo "⬇ $FILE (release $TAG de $REPO)"
+RELEASE="$(curl -sS -L --retry 3 "${AUTH[@]}" -H "Accept: application/vnd.github+json" -w '\n%{http_code}' "$API/releases/tags/$TAG")"
+STATUS="${RELEASE##*$'\n'}"
+RELEASE="${RELEASE%$'\n'*}"
+case "$STATUS" in
+  200) ;;
+  401) fail "GITHUB_TOKEN refusé par GitHub (expiré ou révoqué) : créez-en un nouveau et mettez-le dans .env." ;;
+  404) if [ -z "$TOKEN" ]; then
+         fail "Dépôt privé : un GITHUB_TOKEN est nécessaire (GitHub → Settings → Developer settings → Fine-grained tokens, dépôt $REPO, « Contents : Read-only »), puis ajoutez GITHUB_TOKEN=<token> dans .env."
+       fi
+       fail "Release $TAG introuvable : lancez Actions → « Application mobile (APK Android) » → Run workflow (environnement ${1:-prod})." ;;
+  *) fail "GitHub a répondu HTTP $STATUS pour la release $TAG." ;;
 esac
 
-echo "⬇ Downloading $APK_FILE from GitHub Releases..."
+ASSET=""
+ASSET="$(printf '%s' "$RELEASE" | python3 -c '
+import json, sys
+for a in json.load(sys.stdin).get("assets", []):
+    if a.get("name") == sys.argv[1] and a.get("state") == "uploaded":
+        print(a["id"], a["size"], (a.get("digest") or "-").removeprefix("sha256:"))
+        break
+' "$FILE")"
+[ -n "$ASSET" ] || fail "La release $TAG ne contient pas $FILE : relancez le workflow de l'application mobile."
+read -r ASSET_ID SIZE DIGEST <<<"$ASSET"
 
-# Get the download URL from the latest release
-RELEASE_URL="https://api.github.com/repos/$REPO/releases/tags/$RELEASE_TAG"
-DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep -o "browser_download_url.*$APK_FILE" | cut -d'"' -f3)
-
-if [ -z "$DOWNLOAD_URL" ]; then
-  echo "❌ Could not find $APK_FILE in release $RELEASE_TAG"
-  echo "   Make sure the GitHub Actions workflow has built and released the APK."
-  echo "   Release URL: https://github.com/$REPO/releases/tag/$RELEASE_TAG"
-  exit 1
+if [ -f "app-downloads/$FILE" ] && [ "$DIGEST" != "-" ] \
+   && echo "$DIGEST  app-downloads/$FILE" | sha256sum -c --quiet - >/dev/null 2>&1; then
+  echo "✅ $FILE déjà à jour ($((SIZE / 1048576)) Mo)"
+  exit 0
 fi
 
-echo "   URL: $DOWNLOAD_URL"
-
-# Create downloads directory if it doesn't exist
 mkdir -p app-downloads
+TMP="$(mktemp app-downloads/.download.XXXXXX)"
+trap 'rm -f "$TMP"' EXIT
+# the asset endpoint redirects to a signed storage URL; curl does not forward the token to that other host
+curl -fsSL --retry 3 --connect-timeout 20 "${AUTH[@]}" -H "Accept: application/octet-stream" \
+  -o "$TMP" "$API/releases/assets/$ASSET_ID" || fail "Téléchargement de $FILE interrompu."
 
-# Download the APK
-curl -fL -o "app-downloads/$APK_FILE" "$DOWNLOAD_URL"
-
-if [ -f "app-downloads/$APK_FILE" ]; then
-  SIZE=$(du -h "app-downloads/$APK_FILE" | cut -f1)
-  echo "✅ Downloaded $APK_FILE ($SIZE)"
-else
-  echo "❌ Failed to download $APK_FILE"
-  exit 1
+GOT="$(stat -c %s "$TMP")"
+[ "$GOT" = "$SIZE" ] || fail "Fichier incomplet : $GOT octets reçus au lieu de $SIZE (le fichier en place est conservé)."
+if [ "$DIGEST" != "-" ]; then
+  echo "$DIGEST  $TMP" | sha256sum -c --quiet - || fail "Empreinte SHA-256 différente de la release (le fichier en place est conservé)."
 fi
+python3 - "$TMP" <<'PY' || fail "Le fichier téléchargé n'est pas une APK Android valide (le fichier en place est conservé)."
+import sys, zipfile
+names = set(zipfile.ZipFile(sys.argv[1]).namelist())
+missing = {"AndroidManifest.xml", "classes.dex", "resources.arsc"} - names
+if missing:
+    sys.exit("APK incomplète, manque : " + ", ".join(sorted(missing)))
+PY
+
+chmod 644 "$TMP"
+mv -f "$TMP" "app-downloads/$FILE"
+trap - EXIT
+echo "✅ $FILE installé ($((SIZE / 1048576)) Mo, SHA-256 vérifié) → /downloads/$FILE"

@@ -2,3 +2,5 @@
 .DS_Store
 .idea/
 .vscode/
+app-downloads/*
+!app-downloads/.gitkeep

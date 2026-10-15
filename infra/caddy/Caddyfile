@@ -2,17 +2,20 @@
 {$DOMAIN} {
 	encode zstd gzip
 
-	# Serve APK downloads from /downloads/* → /app/downloads/*
-	@downloads path /downloads/*
-	handle @downloads {
-		uri strip_prefix /downloads
+	# Android app, downloaded by infra/download-apk.sh into app-downloads/ (mounted read-only here)
+	handle_path /downloads/* {
 		root * /app/downloads
+		@apk file
+		header @apk Content-Type application/vnd.android.package-archive
+		header @apk Content-Disposition attachment
+		header @apk Cache-Control no-cache
 		file_server
-		header Content-Type "application/vnd.android.package-archive"
-		header Content-Disposition "attachment; filename=damascino-privileges.apk"
 	}
 
-	reverse_proxy frontend:3000
+	handle {
+		reverse_proxy frontend:3000
+	}
+
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		-Server

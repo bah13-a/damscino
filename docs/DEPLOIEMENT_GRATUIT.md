@@ -72,8 +72,23 @@ Le script [`infra/vps/deploy.sh`](../infra/vps/deploy.sh) :
 - ouvre les ports 80 et 443 ;
 - récupère le code ;
 - génère des secrets aléatoires et le mot de passe administrateur, qu'il affiche une seule fois ;
+- conserve le jeton GitHub dans `.env` (les mises à jour suivantes n'en ont plus besoin) ;
+- télécharge l'application Android depuis la release `android-prod` (taille et SHA-256 vérifiés) dans
+  `app-downloads/`, servie sur `https://<domaine>/downloads/damascino-privileges.apk` (le QR code de la page
+  d'accueil) ;
 - lance l'application derrière **Caddy**, qui obtient automatiquement un certificat HTTPS Let's Encrypt ;
+- vérifie le site HTTPS, l'APK servie et l'accès depuis Internet ;
 - programme une sauvegarde quotidienne de la base (`/var/backups/damascino`, 30 jours).
+
+**AWS EC2** : dans le *Security Group* de l'instance, ouvrir en entrée TCP **80** et **443** (0.0.0.0/0), sinon le
+certificat HTTPS ne peut pas être obtenu et le site reste inaccessible. Prévoir au moins 2 Go de RAM (le script
+ajoute 4 Go de swap).
+
+`deploy.sh` écrit `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml` dans `.env` : dans `/opt/damascino`,
+un simple `docker compose up -d`, `ps` ou `logs` inclut donc toujours Caddy (HTTPS).
+
+**Nouvelle version de l'application Android** (après le workflow GitHub Actions « Application mobile (APK
+Android) », environnement `prod`) : `sudo bash /opt/damascino/infra/download-apk.sh` — sans redémarrage.
 
 Sans nom de domaine, l'application est servie sur `https://<ip-avec-tirets>.sslip.io`
 (ex. `https://141-145-12-34.sslip.io`).
