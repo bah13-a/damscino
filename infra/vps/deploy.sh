@@ -68,6 +68,8 @@ TOKEN="${GITHUB_TOKEN:-}"
 [ -z "$TOKEN" ] && [ -f "$DIR/.env" ] && TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' "$DIR/.env" | tail -n1)"
 [ -z "$TOKEN" ] && [ -d "$DIR/.git" ] && TOKEN="$(git -C "$DIR" remote get-url origin | sed -n 's#^https://x-access-token:\([^@]*\)@.*#\1#p')"
 URL="https://${TOKEN:+x-access-token:${TOKEN}@}${REPO}"
+# the folder may belong to another user (e.g. ubuntu): otherwise git refuses it as root ("dubious ownership")
+git config --global --get-all safe.directory 2>/dev/null | grep -qx "$DIR" || git config --global --add safe.directory "$DIR"
 if [ -d "$DIR/.git" ]; then
   git -C "$DIR" remote set-url origin "$URL"
   git -C "$DIR" fetch --quiet origin "$BRANCH" || die "git fetch impossible : GITHUB_TOKEN manquant ou expiré (sudo -E avec GITHUB_TOKEN=…)."
