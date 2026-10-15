@@ -76,6 +76,12 @@ names = set(zipfile.ZipFile(sys.argv[1]).namelist())
 missing = {"AndroidManifest.xml", "classes.dex", "resources.arsc"} - names
 if missing:
     sys.exit("APK incomplète, manque : " + ", ".join(sorted(missing)))
+# Android refuses an unsigned APK: v2/v3 signing block, or v1 signature files in META-INF/
+with open(sys.argv[1], "rb") as f:
+    f.seek(0, 2); f.seek(max(0, f.tell() - 64 * 1024 * 1024))
+    signed_v2 = b"APK Sig Block 42" in f.read()
+if not signed_v2 and not any(n.startswith("META-INF/") and n.endswith((".RSA", ".EC", ".DSA")) for n in names):
+    sys.exit("APK non signée : Android refuserait de l'installer")
 PY
 
 chmod 644 "$TMP"

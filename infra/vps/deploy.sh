@@ -6,7 +6,9 @@
 #
 # Private repository: the first run needs GITHUB_TOKEN=<token, read access to the repository contents> in the
 # environment; it is then kept in .env and reused for the code and the Android APK.
-# Re-running the script pulls the latest code, refreshes the APK and rebuilds; secrets and data are kept.
+# Re-running the script pulls the latest code, refreshes the APK and the application images; secrets and data are
+# kept. The images are built by GitHub Actions (.github/workflows/deploy.yml), which also runs this script on the
+# server after each change; the server only compiles them itself if they cannot be downloaded.
 # Cloud firewall (AWS Security Group, Oracle security list): inbound TCP 80 and 443 must be open.
 set -euo pipefail
 
@@ -67,16 +69,18 @@ log "4/9 Code source ($BRANCH)"
 TOKEN="${GITHUB_TOKEN:-}"
 [ -z "$TOKEN" ] && [ -f "$DIR/.env" ] && TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' "$DIR/.env" | tail -n1)"
 [ -z "$TOKEN" ] && [ -d "$DIR/.git" ] && TOKEN="$(git -C "$DIR" remote get-url origin | sed -n 's#^https://x-access-token:\([^@]*\)@.*#\1#p')"
+# the token is only put in the URL of this fetch: never written in .git/config
 URL="https://${TOKEN:+x-access-token:${TOKEN}@}${REPO}"
 # the folder may belong to another user (e.g. ubuntu): otherwise git refuses it as root ("dubious ownership")
 git config --global --get-all safe.directory 2>/dev/null | grep -qx "$DIR" || git config --global --add safe.directory "$DIR"
 if [ -d "$DIR/.git" ]; then
-  git -C "$DIR" remote set-url origin "$URL"
-  git -C "$DIR" fetch --quiet origin "$BRANCH" || die "git fetch impossible : GITHUB_TOKEN manquant ou expiré (sudo -E avec GITHUB_TOKEN=…)."
+  git -C "$DIR" remote set-url origin "https://$REPO"
+  git -C "$DIR" fetch --quiet "$URL" "$BRANCH" || die "git fetch impossible : GITHUB_TOKEN manquant ou expiré (sudo -E avec GITHUB_TOKEN=…)."
   # the server is a deployment copy: local edits of tracked files are discarded (.env and the APKs are not tracked)
-  git -C "$DIR" checkout --quiet --force -B "$BRANCH" "origin/$BRANCH"
+  git -C "$DIR" checkout --quiet --force -B "$BRANCH" FETCH_HEAD
 else
   git clone --quiet --branch "$BRANCH" "$URL" "$DIR" || die "git clone impossible : dépôt privé, exportez GITHUB_TOKEN puis sudo -E bash deploy.sh."
+  git -C "$DIR" remote set-url origin "https://$REPO"
 fi
 cd "$DIR"
 git log -1 --format='Version : %h — %s'
@@ -110,7 +114,8 @@ setenv PUBLIC_URL "https://$DOMAIN"
 # a plain « docker compose … » in this folder then always includes HTTPS (Caddy) and the production settings
 setenv COMPOSE_FILE "docker-compose.yml:docker-compose.prod.yml"
 setenv ANDROID_APP_URL "/downloads/$APK_FILE"
-[ -n "$TOKEN" ] && setenv GITHUB_TOKEN "$TOKEN"
+# personal token kept for the next manual runs; the short-lived token of a GitHub Actions run (ghs_…) is not
+case "$TOKEN" in ''|ghs_*) ;; *) setenv GITHUB_TOKEN "$TOKEN" ;; esac
 grep -q '^SMS_GATEWAY_USER=' .env || printf 'SMS_GATEWAY_USER=\nSMS_GATEWAY_PASSWORD=\n' >> .env
 chmod 600 .env
 grep -q '^SMS_GATEWAY_USER=.\+' .env || warn "Renseignez SMS_GATEWAY_USER et SMS_GATEWAY_PASSWORD dans $DIR/.env (docs/SMS.md), sinon les codes SMS ne partent pas."
@@ -130,11 +135,22 @@ if [ -f "app-downloads/$APK_FILE" ] && [ "$(stat -c %s "app-downloads/$APK_FILE"
   warn "Ancienne APK factice supprimée."
 fi
 
-log "7/9 Construction et démarrage (10 à 20 minutes la première fois)"
+log "7/9 Images de l'application et démarrage"
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
+# images built by GitHub Actions (private: the token needs read access to the packages, which the token of an
+# Actions run has; a personal token needs the read:packages scope). Otherwise compiled here (15 to 30 minutes).
+UP=(up -d --remove-orphans --no-build)
+if [ -n "$TOKEN" ] && printf '%s' "$TOKEN" | docker login ghcr.io -u x-access-token --password-stdin >/dev/null 2>&1 \
+   && "${COMPOSE[@]}" pull --quiet; then
+  echo "✅ Images téléchargées depuis ghcr.io (version ${IMAGE_TAG:-latest})"
+else
+  warn "Images GitHub indisponibles (workflow « Images Docker et déploiement serveur » pas encore lancé, ou jeton sans read:packages) : compilation sur le serveur."
+  UP=(up -d --remove-orphans --build)
+fi
+docker logout ghcr.io >/dev/null 2>&1 || true
 started=0
 for attempt in 1 2 3; do
-  if "${COMPOSE[@]}" up -d --build --remove-orphans; then started=1; break; fi
+  if "${COMPOSE[@]}" "${UP[@]}"; then started=1; break; fi
   warn "Tentative $attempt : un service n'a pas démarré à temps."
   for svc in $("${COMPOSE[@]}" ps -a --format '{{.Service}} {{.Health}} {{.State}}' | awk '$2 == "unhealthy" || $3 == "exited" {print $1}'); do
     echo "── Dernières lignes de $svc ──"
@@ -187,4 +203,5 @@ fi
 echo "   Site        : https://$DOMAIN   (administration : https://$DOMAIN/admin/connexion)"
 echo "   Application : https://$DOMAIN/downloads/$APK_FILE"
 echo "   Nouvelle APK publiée par GitHub Actions : sudo bash $DIR/infra/download-apk.sh   (sans redémarrage)"
+docker image prune -f >/dev/null 2>&1 || true
 echo "   Suivi       : cd $DIR && docker compose logs -f"

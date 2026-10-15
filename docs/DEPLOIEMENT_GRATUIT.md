@@ -87,6 +87,21 @@ ajoute 4 Go de swap).
 `deploy.sh` écrit `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml` dans `.env` : dans `/opt/damascino`,
 un simple `docker compose up -d`, `ps` ou `logs` inclut donc toujours Caddy (HTTPS).
 
+**Mises à jour automatiques (recommandé)** : les images de l'application sont compilées par GitHub Actions
+(workflow « Images Docker et déploiement serveur ») et publiées sur `ghcr.io`, puis le serveur est mis à jour par
+SSH : il ne fait que télécharger les images (2 à 5 minutes au lieu de 15 à 30). L'APK de production est aussi
+vérifiée (signature) puis copiée sur le serveur dès sa compilation. À configurer une fois dans GitHub →
+Settings → Secrets and variables → Actions → *New repository secret* :
+
+| Secret | Valeur |
+|---|---|
+| `SERVER_HOST` | IP publique du serveur (sur AWS, une **Elastic IP**, sinon elle change à chaque redémarrage) |
+| `SERVER_SSH_KEY` | contenu complet du fichier `.pem` de la paire de clés EC2 |
+| `SERVER_USER` | `ubuntu` (facultatif) |
+
+Sans ces secrets, les images sont quand même publiées et un `sudo bash /opt/damascino/infra/vps/deploy.sh` sur le
+serveur les télécharge (jeton GitHub avec la portée `read:packages`, sinon il compile sur place).
+
 **Nouvelle version de l'application Android** (après le workflow GitHub Actions « Application mobile (APK
 Android) », environnement `prod`) : `sudo bash /opt/damascino/infra/download-apk.sh` — sans redémarrage.
 

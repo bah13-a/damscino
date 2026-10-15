@@ -1,0 +1,98 @@
+name: Images Docker et déploiement serveur
+
+# Builds the 6 application images on GitHub (instead of on the small server), publishes them to
+# ghcr.io/bah13-a/damscino-<service>:latest and :<commit>, then updates the production server over SSH:
+# the server only downloads the images (infra/vps/deploy.sh), refreshes the Android APK and restarts.
+#
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   SERVER_HOST     IP or domain of the server (an Elastic IP on AWS, otherwise it changes at each restart)
+#   SERVER_SSH_KEY  private SSH key of the server (content of the EC2 .pem file)
+#   SERVER_USER     optional, default ubuntu
+# The server must have been installed once by hand with infra/vps/deploy.sh (docs/DEPLOIEMENT_GRATUIT.md).
+
+on:
+  push:
+    branches: [claude/serene-faraday-tqmxat]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'infra/**'
+      - 'docker-compose*.yml'
+      - '.github/workflows/deploy.yml'
+      - '.github/scripts/server-run.sh'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { name: gateway,           context: backend,  file: backend/gateway/Dockerfile }
+          - { name: identity-service,  context: backend,  file: backend/identity-service/Dockerfile }
+          - { name: partner-service,   context: backend,  file: backend/partner-service/Dockerfile }
+          - { name: privilege-service, context: backend,  file: backend/privilege-service/Dockerfile }
+          - { name: reporting-service, context: backend,  file: backend/reporting-service/Dockerfile }
+          - { name: frontend,          context: frontend, file: frontend/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}-${{ matrix.name }}:latest
+            ghcr.io/${{ github.repository }}-${{ matrix.name }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          # production values (the frontend bakes them at build time; unused by the Java images)
+          build-args: |
+            API_URL=http://gateway:8080
+            NEXT_PUBLIC_ANDROID_APP_URL=/downloads/damascino-privileges.apk
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mise à jour du serveur
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          # short-lived token of this run: code, images and APK of the private repository (never stored on the server)
+          RUN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/scripts/server-run.sh <<SCRIPT
+          set -euo pipefail
+          DIR=/opt/damascino
+          git config --global --get-all safe.directory 2>/dev/null | grep -qx "\$DIR" || git config --global --add safe.directory "\$DIR"
+          if [ ! -d "\$DIR/.git" ]; then
+            echo "::error::\$DIR absent : installez d'abord le serveur avec infra/vps/deploy.sh (docs/DEPLOIEMENT_GRATUIT.md)."
+            exit 1
+          fi
+          git -C "\$DIR" fetch --quiet "https://x-access-token:${RUN_TOKEN}@github.com/${{ github.repository }}.git" "${{ github.ref_name }}"
+          git -C "\$DIR" checkout --quiet --force -B "${{ github.ref_name }}" FETCH_HEAD
+          GITHUB_TOKEN="${RUN_TOKEN}" IMAGE_TAG="${{ github.sha }}" bash "\$DIR/infra/vps/deploy.sh" < /dev/null
+          SCRIPT

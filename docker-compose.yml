@@ -1,6 +1,8 @@
 # Local stack: docker compose up --build   →   http://localhost:3000
 # (admin / Damascino2026! at first login, password change forced)
 # Server with HTTPS: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Images built by .github/workflows/deploy.yml are published as ghcr.io/bah13-a/damscino-<service>:latest
+# (infra/vps/deploy.sh pulls them instead of compiling on the server).
 # (see docs/DEPLOIEMENT_GRATUIT.md)
 
 # Small heap per JVM: the whole stack fits in ~3 GB (free Codespace, Oracle Always Free VM, laptop)
@@ -53,6 +55,7 @@ services:
       timeout: 5s
       start_period: 600s
       retries: 10
+    image: ${IMAGE_PREFIX:-ghcr.io/bah13-a/damscino}-identity-service:${IMAGE_TAG:-latest}
     build: { context: ./backend, dockerfile: identity-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -76,6 +79,7 @@ services:
       timeout: 5s
       start_period: 600s
       retries: 10
+    image: ${IMAGE_PREFIX:-ghcr.io/bah13-a/damscino}-partner-service:${IMAGE_TAG:-latest}
     build: { context: ./backend, dockerfile: partner-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -90,6 +94,7 @@ services:
       timeout: 5s
       start_period: 600s
       retries: 10
+    image: ${IMAGE_PREFIX:-ghcr.io/bah13-a/damscino}-privilege-service:${IMAGE_TAG:-latest}
     build: { context: ./backend, dockerfile: privilege-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -104,6 +109,7 @@ services:
       timeout: 5s
       start_period: 600s
       retries: 10
+    image: ${IMAGE_PREFIX:-ghcr.io/bah13-a/damscino}-reporting-service:${IMAGE_TAG:-latest}
     build: { context: ./backend, dockerfile: reporting-service/Dockerfile }
     environment:
       <<: *backend-env
@@ -117,6 +123,7 @@ services:
       timeout: 5s
       start_period: 600s
       retries: 10
+    image: ${IMAGE_PREFIX:-ghcr.io/bah13-a/damscino}-gateway:${IMAGE_TAG:-latest}
     build: { context: ./backend, dockerfile: gateway/Dockerfile }
     environment:
       IDENTITY_URL: http://identity-service:8081
@@ -135,6 +142,7 @@ services:
 
   frontend:
     restart: unless-stopped
+    image: ${IMAGE_PREFIX:-ghcr.io/bah13-a/damscino}-frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       args:

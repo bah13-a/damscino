@@ -118,6 +118,12 @@ jobs:
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
           ls -la "../$FILE"
+      # an unsigned or truncated APK is refused by Android ("problème lors de l'analyse du package"): never publish one
+      - name: Check that the APK is installable
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)"
+          "$BT/apksigner" verify --verbose "../${{ steps.apk.outputs.file }}"
+          "$BT/aapt2" dump badging "../${{ steps.apk.outputs.file }}" | grep -E "^(package|sdkVersion|targetSdkVersion|native-code)" || true
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.apk.outputs.file }}
@@ -138,3 +144,17 @@ jobs:
             Serveur : ${{ env.EXPO_PUBLIC_API_URL }}
             Commit : ${{ github.sha }} · build ${{ github.run_number }}
             Installation : télécharger `${{ steps.apk.outputs.file }}` sur le téléphone, l'ouvrir et autoriser l'installation.
+      # production app: put it at once on the server (QR code of the home page); secrets: see deploy.yml
+      - name: Publish the APK on the server
+        if: env.APP_ENV == 'prod'
+        working-directory: ${{ github.workspace }}
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          RUN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/scripts/server-run.sh <<SCRIPT
+          set -euo pipefail
+          GITHUB_TOKEN="${RUN_TOKEN}" bash /opt/damascino/infra/download-apk.sh prod < /dev/null
+          SCRIPT
