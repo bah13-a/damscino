@@ -80,8 +80,11 @@ cd "$DIR"
 git log -1 --format='Version : %h — %s'
 
 log "5/9 Configuration (.env)"
+# a custom domain is kept; an <ip>.sslip.io address follows the current public IP
+# (EC2 changes it at every stop/start without an Elastic IP)
 if [ -z "$DOMAIN" ] && [ -f .env ]; then
   DOMAIN="$(sed -n 's/^DOMAIN=//p' .env | tail -n1)"
+  case "$DOMAIN" in *.sslip.io) DOMAIN="" ;; esac
 fi
 if [ -z "$DOMAIN" ]; then
   IP="$(curl -fsS --max-time 10 https://checkip.amazonaws.com || curl -fsS --max-time 10 https://api.ipify.org)"
