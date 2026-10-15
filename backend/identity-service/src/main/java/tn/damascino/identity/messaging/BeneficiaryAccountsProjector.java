@@ -59,6 +59,7 @@ public class BeneficiaryAccountsProjector {
             account.issueTemporaryPassword(event.passwordHash());
             sessions.deleteAllForAccount(account.getId());
         }
+        account.changeEmail(event.email());
         accounts.save(account);
         events.publish(new BeneficiarySessionChanged(event.beneficiaryId(), account.getSessionVersion()));
     }
@@ -66,6 +67,7 @@ public class BeneficiaryAccountsProjector {
     private void beneficiaryChanged(BeneficiaryChanged event) {
         accounts.findByBeneficiaryId(event.beneficiaryId()).ifPresent(account -> {
             account.updateBeneficiaryProfile(event.partnerId(), event.phone(), event.fullName(), event.active());
+            account.changeEmail(event.email());
             if (!event.active()) {
                 sessions.deleteAllForAccount(account.getId());
             }

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Reads beneficiary lists from Excel (.xlsx / .xls) or CSV (';' or ',') with columns Nom, Prénom, Téléphone. */
+/** Reads beneficiary lists from Excel (.xlsx / .xls) or CSV (';' or ',') with columns Nom, Prénom, Téléphone and optional E-mail. */
 public final class BeneficiaryFileParser {
 
     private BeneficiaryFileParser() {
@@ -43,6 +43,7 @@ public final class BeneficiaryFileParser {
         int lastName = column(header, "nom", "lastname", "nomdefamille");
         int firstName = column(header, "prenom", "firstname");
         int phone = column(header, "telephone", "tel", "phone", "mobile", "numero", "gsm");
+        int email = column(header, "email", "mail", "courriel", "adressemail", "adresseemail");
         if (lastName < 0 || firstName < 0 || phone < 0) {
             throw ApiException.badRequest("MISSING_COLUMNS",
                     "Colonnes attendues : Nom, Prénom, Téléphone (téléchargez le modèle)");
@@ -57,7 +58,8 @@ public final class BeneficiaryFileParser {
             if (rows.size() >= maxRows) {
                 throw ApiException.badRequest("TOO_MANY_ROWS", "Le fichier dépasse " + maxRows + " lignes");
             }
-            rows.add(new ImportRow(i + 1, cell(cells, lastName), cell(cells, firstName), cell(cells, phone)));
+            rows.add(new ImportRow(i + 1, cell(cells, lastName), cell(cells, firstName), cell(cells, phone),
+                    email < 0 ? "" : cell(cells, email)));
         }
         return rows;
     }

@@ -24,6 +24,7 @@ export function BeneficiaryForm({
     lastName: beneficiary?.lastName ?? '',
     firstName: beneficiary?.firstName ?? '',
     phone: beneficiary?.phone ?? '',
+    email: beneficiary?.email ?? '',
   });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -61,6 +62,13 @@ export function BeneficiaryForm({
         <Field label="Prénom" required value={form.firstName} onChange={set('firstName')} />
       </div>
       <Field label="Téléphone (identifiant)" type="tel" required value={form.phone} onChange={set('phone')} hint="8 chiffres, ex. 98 123 456" />
+      <Field
+        label="E-mail (facultatif)"
+        type="email"
+        value={form.email}
+        onChange={set('email')}
+        hint="Le code d'activation y est aussi envoyé, en plus du SMS"
+      />
       <Button type="submit" loading={saving} className="w-full">
         {beneficiary ? 'Enregistrer' : 'Ajouter et générer les accès'}
       </Button>

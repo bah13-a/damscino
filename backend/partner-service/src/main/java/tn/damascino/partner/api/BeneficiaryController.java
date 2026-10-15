@@ -52,7 +52,7 @@ public class BeneficiaryController {
     }
 
     public record BeneficiaryRequest(@NotNull UUID partnerId, @NotBlank String firstName, @NotBlank String lastName,
-                                     @NotBlank String phone) {
+                                     @NotBlank String phone, String email) {
     }
 
     public record StatusRequest(boolean active) {
@@ -71,7 +71,7 @@ public class BeneficiaryController {
     @ResponseStatus(HttpStatus.CREATED)
     public IssuedCredentials create(@Valid @RequestBody BeneficiaryRequest request) {
         return commands.dispatch(new CreateBeneficiaryCommand(SecuritySupport.currentUser(), request.partnerId(),
-                request.firstName(), request.lastName(), request.phone()));
+                request.firstName(), request.lastName(), request.phone(), request.email()));
     }
 
     @GetMapping("/{id}")
@@ -82,7 +82,7 @@ public class BeneficiaryController {
     @PutMapping("/{id}")
     public BeneficiaryView update(@PathVariable UUID id, @Valid @RequestBody BeneficiaryRequest request) {
         return commands.dispatch(new UpdateBeneficiaryCommand(SecuritySupport.currentUser(), id, request.partnerId(),
-                request.firstName(), request.lastName(), request.phone()));
+                request.firstName(), request.lastName(), request.phone(), request.email()));
     }
 
     @PatchMapping("/{id}/status")
@@ -102,18 +102,19 @@ public class BeneficiaryController {
                                          @RequestParam(defaultValue = "xlsx") String format) {
         List<List<Object>> rows = new ArrayList<>();
         for (BeneficiaryView b : queries.ask(new ListBeneficiariesQuery(q, partnerId, active))) {
-            rows.add(java.util.Arrays.asList(b.lastName(), b.firstName(), b.phone(), b.partnerName(),
+            rows.add(java.util.Arrays.asList(b.lastName(), b.firstName(), b.phone(), b.email() == null ? "" : b.email(),
+                    b.partnerName(),
                     b.active() ? "Actif" : "Désactivé", b.accountActivated() ? "Oui" : "Non",
                     date(b.activatedAt()), date(b.createdAt())));
         }
-        return TabularExport.response("beneficiaires", format, List.of("Nom", "Prénom", "Téléphone", "Partenaire",
+        return TabularExport.response("beneficiaires", format, List.of("Nom", "Prénom", "Téléphone", "E-mail", "Partenaire",
                 "Statut", "Compte activé", "Activé le", "Ajouté le"), rows);
     }
 
     @GetMapping("/import-template")
     public ResponseEntity<byte[]> importTemplate(@RequestParam(defaultValue = "xlsx") String format) {
-        return TabularExport.response("modele-import-beneficiaires", format, List.of("Nom", "Prénom", "Téléphone"),
-                List.of(List.of("Ben Salah", "Amira", "98123456")));
+        return TabularExport.response("modele-import-beneficiaires", format, List.of("Nom", "Prénom", "Téléphone", "E-mail"),
+                List.of(List.of("Ben Salah", "Amira", "98123456", "amira.bensalah@exemple.tn")));
     }
 
     private static String date(Instant instant) {

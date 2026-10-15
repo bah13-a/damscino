@@ -68,6 +68,13 @@ services:
       SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-https://api.sms-gate.app/3rdparty/v1}
       SMS_GATEWAY_USER: ${SMS_GATEWAY_USER:-}
       SMS_GATEWAY_PASSWORD: ${SMS_GATEWAY_PASSWORD:-}
+      # the same activation code also goes by e-mail when the partner list gives an address (docs/SMS.md)
+      MAIL_PROVIDER: ${MAIL_PROVIDER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       SMS_MAX_PER_IP_HOUR: ${SMS_MAX_PER_IP_HOUR:-1000}
     depends_on: { postgres: { condition: service_healthy }, rabbitmq: { condition: service_healthy } }
 

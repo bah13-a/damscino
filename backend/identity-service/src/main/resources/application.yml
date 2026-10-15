@@ -64,3 +64,13 @@ damascino:
       url: ${SMS_GATEWAY_URL:https://api.sms-gate.app/3rdparty/v1}
       username: ${SMS_GATEWAY_USER:}
       password: ${SMS_GATEWAY_PASSWORD:}
+  # the activation code is also sent by e-mail to beneficiaries whose address is on the partner list
+  mail:
+    # log: test environment, nothing is sent; smtp: any SMTP server (Brevo, Gmail… see docs/SMS.md)
+    provider: ${MAIL_PROVIDER:log}
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:Damascino Privilèges}

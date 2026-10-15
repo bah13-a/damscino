@@ -5,7 +5,9 @@ Les bénéficiaires activent leur compte et se connectent avec un **code reçu p
 1. Le collaborateur ouvre l'application (ou le **lien d'activation** de son entreprise) et saisit son **numéro**.
 2. Le numéro doit figurer sur la **liste importée** du partenaire (et sur la liste *de ce partenaire* quand l'application
    a été ouverte depuis son lien : posséder le lien ne donne aucun accès). Sinon l'inscription est refusée.
-3. Un **code à 6 chiffres** est envoyé par SMS. Il est valable **5 minutes**, avec **3 essais** au maximum.
+3. Un **code à 6 chiffres** est envoyé par SMS et, si la liste du partenaire donne son **e-mail**, le **même code**
+   est aussi envoyé par e-mail. Il est valable **5 minutes**, avec **3 essais** au maximum. Il suffit qu'un des deux
+   envois réussisse : si le téléphone passerelle est éteint, le bénéficiaire reçoit quand même son code par e-mail.
 4. Le code juste **active le compte** (il est compté dans « comptes activés ») et ouvre une session longue sur ce
    téléphone. Un nouveau code n'est demandé qu'en cas de **changement de téléphone** : l'ancien est alors déconnecté.
 
@@ -16,6 +18,28 @@ production.
 Le **mot de passe temporaire** reste une solution de secours (lien *J'ai un mot de passe* dans l'application). Il est
 désactivé dès que le bénéficiaire s'active par SMS. Le **personnel de caisse** garde identifiant + code PIN, et
 l'**administration** son identifiant + mot de passe sur le site.
+
+## Envoi par e-mail (gratuit)
+
+L'e-mail du bénéficiaire est **facultatif** : colonne **E-mail** du fichier importé (modèle téléchargeable dans
+l'administration) ou champ *E-mail* de la fiche bénéficiaire. Sans e-mail, le code part seulement par SMS.
+
+L'envoi passe par un compte **SMTP gratuit** :
+
+| Service | Serveur | Identifiant / mot de passe | Volume gratuit |
+|---|---|---|---|
+| **Brevo** (recommandé) | `smtp-relay.brevo.com`, port 587 | Brevo → *SMTP & API* → identifiant SMTP et **clé SMTP** ; l'adresse d'expédition doit être validée (*Senders*) | 300 e-mails / jour |
+| **Gmail** | `smtp.gmail.com`, port 587 | adresse Gmail + **mot de passe d'application** (compte Google → Sécurité → validation en 2 étapes → Mots de passe des applications) | environ 500 / jour |
+
+Configuration sur le serveur (le mot de passe n'est pas affiché, un e-mail de test est proposé, rien n'est modifié
+en cas d'échec) :
+
+```bash
+sudo bash /opt/damascino/infra/configure-email.sh
+```
+
+> Conseil : Brevo avec une adresse d'expédition de votre domaine (ex. `codes@damascino.tn`) limite le classement en
+> spam. Prévenez les bénéficiaires de regarder aussi dans les courriers indésirables.
 
 ## Outil d'envoi gratuit : SMS Gateway for Android
 
@@ -73,6 +97,9 @@ réduit à presque rien.
 | `SMS_EXPOSE_CODES` | `true` : l'application de test affiche le code (« Environnement de test : … ») | `false` (forcé) |
 | `SMS_GATEWAY_URL` | — | `https://api.sms-gate.app/3rdparty/v1` (défaut) |
 | `SMS_GATEWAY_USER`, `SMS_GATEWAY_PASSWORD` | — | identifiants affichés par l'application Android |
+| `MAIL_PROVIDER` | `log` : aucun e-mail, écrit dans le journal | `smtp` |
+| `MAIL_HOST`, `MAIL_PORT` | — | serveur SMTP (`smtp-relay.brevo.com`, `587`) |
+| `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | — | identifiants SMTP et adresse d'expédition |
 | `SMS_CODE_TTL` | `5m` | `5m` |
 | `SMS_RESEND_DELAY` | `60s` | `60s` |
 | `SMS_MAX_PER_PHONE_HOUR` | `3` | `3` |
@@ -85,7 +112,7 @@ identifiants dans `.env`. Le code n'est alors **jamais** affiché dans l'applica
 
 | Appel | Corps | Réponses |
 |---|---|---|
-| `POST /api/auth/sms/request` | `{ "phone": "98123456", "partnerId": "<optionnel>" }` | `200 { maskedPhone, expiresIn, resendIn, devCode }` · `400 INVALID_PHONE` · `403 NUMBER_NOT_AUTHORIZED` / `ACCOUNT_DISABLED` / `MOBILE_APP_REQUIRED` · `429 SMS_RESEND_TOO_SOON` / `SMS_LIMIT_REACHED` / `SMS_RATE_LIMITED` · `503 SMS_UNAVAILABLE` |
+| `POST /api/auth/sms/request` | `{ "phone": "98123456", "partnerId": "<optionnel>" }` | `200 { maskedPhone, expiresIn, resendIn, devCode, smsSent, maskedEmail }` · `400 INVALID_PHONE` · `403 NUMBER_NOT_AUTHORIZED` / `ACCOUNT_DISABLED` / `MOBILE_APP_REQUIRED` · `429 SMS_RESEND_TOO_SOON` / `SMS_LIMIT_REACHED` / `SMS_RATE_LIMITED` · `503 SMS_UNAVAILABLE` |
 | `POST /api/auth/sms/verify` | `{ "phone": "98123456", "code": "123456" }` | `200` session (comme `/api/auth/login`) · `401 INVALID_SMS_CODE` · `429 SMS_CODE_BLOCKED` · `400 SMS_CODE_EXPIRED` |
 
 Les deux appels exigent l'en-tête `X-Client-App` de l'application mobile.

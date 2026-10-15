@@ -33,7 +33,8 @@ export function ImportPanel({ partnerId, partnerName, onImported }: { partnerId:
     <Card>
       <h2 className="font-display text-lg font-semibold">Importer une liste</h2>
       <p className="mt-1 text-sm text-muted">
-        Fichier Excel (.xlsx) ou CSV avec les colonnes <strong>Nom</strong>, <strong>Prénom</strong>, <strong>Téléphone</strong>. Les
+        Fichier Excel (.xlsx) ou CSV avec les colonnes <strong>Nom</strong>, <strong>Prénom</strong>, <strong>Téléphone</strong> et, facultatif,{' '}
+        <strong>E-mail</strong> (le code d&apos;activation y est aussi envoyé). Les
         doublons (dans le fichier ou déjà enregistrés) sont ignorés ; chaque nouvelle personne reçoit un identifiant (son téléphone)
         et un mot de passe temporaire.
       </p>

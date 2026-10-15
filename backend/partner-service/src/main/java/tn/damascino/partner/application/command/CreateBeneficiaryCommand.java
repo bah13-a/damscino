@@ -8,5 +8,5 @@ import java.util.UUID;
 
 /** Manual addition of one beneficiary; returns the generated access. */
 public record CreateBeneficiaryCommand(AuthenticatedUser actor, UUID partnerId, String firstName, String lastName,
-                                       String phone) implements Command<IssuedCredentials> {
+                                       String phone, String email) implements Command<IssuedCredentials> {
 }

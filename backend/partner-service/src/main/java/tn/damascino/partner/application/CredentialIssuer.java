@@ -32,7 +32,8 @@ public class CredentialIssuer {
         String password = TemporaryPasswords.generate();
         beneficiary.credentialsIssued(vault.encrypt(password), clock.instant());
         events.publish(new BeneficiaryCredentialsIssued(beneficiary.getId(), beneficiary.getPartnerId(),
-                beneficiary.getPhone(), beneficiary.fullName(), beneficiary.isActive(), temporaryEncoder.encode(password)));
+                beneficiary.getPhone(), beneficiary.fullName(), beneficiary.isActive(), temporaryEncoder.encode(password),
+                beneficiary.getEmail()));
         return new IssuedCredentials(beneficiary.getId(), beneficiary.getFirstName(), beneficiary.getLastName(),
                 beneficiary.getPhone(), password);
     }

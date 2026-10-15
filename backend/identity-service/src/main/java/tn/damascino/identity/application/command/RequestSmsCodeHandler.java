@@ -6,14 +6,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tn.damascino.common.cqrs.CommandHandler;
 import tn.damascino.common.security.Role;
+import tn.damascino.common.util.Emails;
 import tn.damascino.common.util.PhoneNumbers;
 import tn.damascino.common.web.ApiException;
+import tn.damascino.identity.application.mail.EmailSender;
 import tn.damascino.identity.application.sms.SmsRateLimiter;
 import tn.damascino.identity.application.sms.SmsSender;
 import tn.damascino.identity.domain.Account;
 import tn.damascino.identity.domain.AccountRepository;
 import tn.damascino.identity.domain.SmsCode;
 import tn.damascino.identity.domain.SmsCodeRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -22,16 +27,19 @@ import java.time.Instant;
 
 /**
  * Activation step 1: the number must be on a partner list (and on the list of the partner whose link was opened);
- * a 6-digit code is then sent by SMS.
+ * a 6-digit code is then sent by SMS and, when the partner list gives an address, the same code by e-mail. The
+ * request succeeds as soon as one of the two channels delivered it.
  */
 @Component
 public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeCommand, RequestSmsCodeCommand.Sent> {
 
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Logger log = LoggerFactory.getLogger(RequestSmsCodeHandler.class);
 
     private final AccountRepository accounts;
     private final SmsCodeRepository codes;
     private final SmsSender sender;
+    private final EmailSender mail;
     private final SmsRateLimiter rateLimiter;
     private final Clock clock;
     private final Duration ttl;
@@ -40,7 +48,7 @@ public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeComma
     private final boolean exposeCodes;
 
     public RequestSmsCodeHandler(AccountRepository accounts, SmsCodeRepository codes, SmsSender sender,
-                                 SmsRateLimiter rateLimiter, Clock clock,
+                                 EmailSender mail, SmsRateLimiter rateLimiter, Clock clock,
                                  @Value("${damascino.sms.code-ttl}") Duration ttl,
                                  @Value("${damascino.sms.resend-delay}") Duration resendDelay,
                                  @Value("${damascino.sms.max-per-phone-per-hour}") int maxPerPhonePerHour,
@@ -48,13 +56,13 @@ public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeComma
         this.accounts = accounts;
         this.codes = codes;
         this.sender = sender;
+        this.mail = mail;
         this.rateLimiter = rateLimiter;
         this.clock = clock;
         this.ttl = ttl;
         this.resendDelay = resendDelay;
         this.maxPerPhonePerHour = maxPerPhonePerHour;
-        // never reveal a code that was really sent by SMS
-        this.exposeCodes = exposeCodes && sender.simulated();
+        this.exposeCodes = exposeCodes;
     }
 
     @Override
@@ -92,12 +100,39 @@ public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeComma
         codes.findByPhoneAndConsumedFalse(phone).forEach(SmsCode::invalidate);
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
         codes.save(new SmsCode(account.getId(), phone, code, ttl, command.clientIp(), now));
-        // plain ASCII keeps the message in a single SMS
-        sender.send("+216" + phone, "Damascino Privileges : votre code est " + code + ". Valable "
-                + ttl.toMinutes() + " min. Ne le communiquez a personne.");
+        ApiException smsFailure = null;
+        try {
+            // plain ASCII keeps the message in a single SMS
+            sender.send("+216" + phone, "Damascino Privileges : votre code est " + code + ". Valable "
+                    + ttl.toMinutes() + " min. Ne le communiquez a personne.");
+        } catch (ApiException e) {
+            smsFailure = e;
+        }
+        String email = account.getEmail();
+        boolean emailSent = email != null && mail.send(email, "Votre code Damascino Privilèges : " + code,
+                emailText(account.getDisplayName(), code));
+        if (smsFailure != null && !emailSent) {
+            throw smsFailure;
+        }
+        if (smsFailure != null) {
+            log.info("SMS en échec pour {} : code envoyé uniquement par e-mail", mask(phone));
+        }
 
+        // never reveal a code that really left the server (SMS or e-mail)
+        boolean nothingReallySent = (smsFailure != null || sender.simulated()) && (!emailSent || mail.simulated());
         return new RequestSmsCodeCommand.Sent(mask(phone), ttl.toSeconds(), resendDelay.toSeconds(),
-                exposeCodes ? code : null);
+                exposeCodes && nothingReallySent ? code : null, smsFailure == null,
+                emailSent ? Emails.mask(email) : null);
+    }
+
+    private String emailText(String name, String code) {
+        return "Bonjour " + name + ",\n\n"
+                + "Votre code d'activation Damascino Privilèges est : " + code + "\n\n"
+                + "Saisissez-le dans l'application. Il est valable " + ttl.toMinutes() + " minutes et vous a aussi "
+                + "été envoyé par SMS.\n"
+                + "Ne le communiquez à personne : Damascino ne vous le demandera jamais.\n\n"
+                + "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n\n"
+                + "Damascino — oriental kitchen and coffee";
     }
 
     static String mask(String phone) {

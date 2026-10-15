@@ -38,11 +38,12 @@ public class UpdateBeneficiaryHandler implements CommandHandler<UpdateBeneficiar
                 .orElseThrow(() -> ApiException.notFound("Bénéficiaire"));
         Partner partner = support.partner(command.partnerId() == null ? beneficiary.getPartnerId() : command.partnerId());
         String phone = support.validPhone(command.phone());
+        String email = PartnerCommandSupport.validEmail(command.email());
         beneficiaries.findByPhone(phone).filter(other -> !other.getId().equals(beneficiary.getId())).ifPresent(other -> {
             throw ApiException.conflict("PHONE_TAKEN", "Ce numéro de téléphone est déjà enregistré");
         });
         beneficiary.update(partner.getId(), PartnerCommandSupport.required(command.firstName(), "Le prénom"),
-                PartnerCommandSupport.required(command.lastName(), "Le nom"), phone, clock.instant());
+                PartnerCommandSupport.required(command.lastName(), "Le nom"), phone, email, clock.instant());
         events.publish(beneficiary.snapshot());
         audit.record(command.actor(), "BENEFICIARY_UPDATED", "BENEFICIARY", beneficiary.getId(),
                 beneficiary.fullName() + " · " + partner.getName());

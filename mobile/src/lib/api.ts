@@ -120,6 +120,10 @@ export interface SmsCodeSent {
   resendIn: number;
   /** Test environment only: no SMS is sent, the code is returned to the app. */
   devCode: string | null;
+  /** false when the SMS failed and the code only left by e-mail */
+  smsSent?: boolean;
+  /** address the same code was sent to (masked), null when none */
+  maskedEmail?: string | null;
 }
 
 /** Beneficiary activation, step 1: the number must be on the list of a partner (of `partnerId` when given). */

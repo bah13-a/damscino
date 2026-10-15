@@ -139,7 +139,7 @@ function SmsLogin({ partnerId, notice }: { partnerId?: string; notice: ReactNode
       {error ? (
         <Alert>{error}</Alert>
       ) : (
-        <Alert tone="success">Code envoyé par SMS au {sent.maskedPhone}. Il est valable {Math.round(sent.expiresIn / 60)} minutes.</Alert>
+        <Alert tone="success">{sentMessage(sent)}</Alert>
       )}
       {sent.devCode && (
         <Alert tone="warning">Environnement de test : aucun SMS n’est envoyé. Votre code est {sent.devCode}.</Alert>
@@ -231,4 +231,16 @@ function PasswordLogin({ space, notice }: { space: Space; notice: ReactNode }) {
       <Button title="Se connecter" large loading={loading} disabled={!username || !password} onPress={submit} />
     </>
   );
+}
+
+function sentMessage(sent: SmsCodeSent): string {
+  const minutes = Math.round(sent.expiresIn / 60);
+  const bySms = sent.smsSent !== false;
+  if (bySms && sent.maskedEmail) {
+    return `Code envoyé par SMS au ${sent.maskedPhone} et par e-mail à ${sent.maskedEmail}. Il est valable ${minutes} minutes.`;
+  }
+  if (sent.maskedEmail) {
+    return `Le SMS n’a pas pu partir : code envoyé par e-mail à ${sent.maskedEmail}. Il est valable ${minutes} minutes.`;
+  }
+  return `Code envoyé par SMS au ${sent.maskedPhone}. Il est valable ${minutes} minutes.`;
 }

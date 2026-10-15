@@ -11,7 +11,9 @@ public record BeneficiaryChanged(
         String lastName,
         String phone,
         boolean active,
-        Instant createdAt) implements DomainEvent {
+        Instant createdAt,
+        /** optional, receives the activation code like the phone (null in events published before it existed) */
+        String email) implements DomainEvent {
 
     public String fullName() {
         return (firstName + " " + lastName).trim();

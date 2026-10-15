@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tn.damascino.common.cqrs.CommandHandler;
 import tn.damascino.common.outbox.EventPublisher;
+import tn.damascino.common.util.Emails;
 import tn.damascino.common.util.PhoneNumbers;
 import tn.damascino.common.web.SafeText;
 import tn.damascino.partner.application.Audit;
@@ -78,6 +79,7 @@ public class ImportBeneficiariesHandler implements CommandHandler<ImportBenefici
 
         for (ImportRow row : rows) {
             String phone = PhoneNumbers.normalize(row.phone());
+            String email = Emails.normalize(row.email());
             String reason = null;
             if (row.lastName().isBlank() || row.firstName().isBlank()) {
                 reason = "Nom ou prénom manquant";
@@ -85,6 +87,8 @@ public class ImportBeneficiariesHandler implements CommandHandler<ImportBenefici
                 reason = SafeText.MESSAGE;
             } else if (!PhoneNumbers.isValid(phone)) {
                 reason = "Téléphone invalide (8 chiffres attendus)";
+            } else if (!Emails.isValidOrEmpty(email)) {
+                reason = "E-mail invalide";
             } else if (!seenInFile.add(phone)) {
                 reason = "Doublon dans le fichier";
             } else if (existing.containsKey(phone)) {
@@ -99,7 +103,7 @@ public class ImportBeneficiariesHandler implements CommandHandler<ImportBenefici
             }
             Beneficiary beneficiary = beneficiaries.save(
                     new Beneficiary(partner.getId(), SafeText.stripInvisible(row.firstName()),
-                            SafeText.stripInvisible(row.lastName()), phone, now));
+                            SafeText.stripInvisible(row.lastName()), phone, email, now));
             events.publish(beneficiary.snapshot());
             created.add(credentialIssuer.issue(beneficiary));
         }

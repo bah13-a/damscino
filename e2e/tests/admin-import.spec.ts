@@ -32,7 +32,7 @@ test.describe("Administration · import des listes et export des accès", () => 
 
     // modèle d'import
     const [template] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Télécharger le modèle' }).click()]);
-    expect((await readXlsx(await template.path()))[0]).toEqual(['Nom', 'Prénom', 'Téléphone']);
+    expect((await readXlsx(await template.path()))[0]).toEqual(['Nom', 'Prénom', 'Téléphone', 'E-mail']);
 
     // CSV : 2 valides, 1 doublon interne, 1 téléphone invalide, 1 nom manquant, 1 déjà inscrit chez un autre partenaire
     const [p1, p2] = [randomPhone(), randomPhone()];

@@ -99,7 +99,10 @@ export function BeneficiaryTable({ partners, partnerId, refreshKey = 0 }: { part
                 <td className="px-4 py-3 font-medium">
                   {b.lastName} {b.firstName}
                 </td>
-                <td className="px-4 py-3 font-mono tabular-nums">{phone(b.phone)}</td>
+                <td className="px-4 py-3">
+                  <span className="font-mono tabular-nums">{phone(b.phone)}</span>
+                  {b.email && <span className="block text-xs text-muted">{b.email}</span>}
+                </td>
                 {!partnerId && <td className="px-4 py-3">{b.partnerName}</td>}
                 <td className="px-4 py-3">
                   {!b.active ? (

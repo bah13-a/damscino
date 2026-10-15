@@ -1,6 +1,7 @@
 package tn.damascino.partner.application.command;
 
 import org.springframework.stereotype.Component;
+import tn.damascino.common.util.Emails;
 import tn.damascino.common.util.PhoneNumbers;
 import tn.damascino.common.web.ApiException;
 import tn.damascino.partner.application.query.PartnerView;
@@ -55,6 +56,15 @@ public class PartnerCommandSupport {
             throw ApiException.badRequest("INVALID_PHONE", "Numéro de téléphone invalide (8 chiffres attendus)");
         }
         return phone;
+    }
+
+    /** @return the normalized address, null when empty */
+    public static String validEmail(String raw) {
+        String email = Emails.normalize(raw);
+        if (!Emails.isValidOrEmpty(email)) {
+            throw ApiException.badRequest("INVALID_EMAIL", "Adresse e-mail invalide");
+        }
+        return email;
     }
 
     public static String required(String value, String label) {

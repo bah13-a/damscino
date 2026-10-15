@@ -95,6 +95,7 @@ export interface Beneficiary {
   firstName: string;
   lastName: string;
   phone: string;
+  email: string | null;
   active: boolean;
   accountActivated: boolean;
   credentialsIssuedAt: string | null;

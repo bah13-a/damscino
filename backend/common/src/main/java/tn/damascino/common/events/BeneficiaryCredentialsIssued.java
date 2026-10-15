@@ -12,7 +12,9 @@ public record BeneficiaryCredentialsIssued(
         String phone,
         String fullName,
         boolean active,
-        String passwordHash) implements DomainEvent {
+        String passwordHash,
+        /** optional, receives the activation code like the phone */
+        String email) implements DomainEvent {
 
     @Override
     public String eventType() {

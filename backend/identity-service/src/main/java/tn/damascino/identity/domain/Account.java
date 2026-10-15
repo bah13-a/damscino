@@ -46,6 +46,9 @@ public class Account {
     @Column(name = "partner_id")
     private UUID partnerId;
 
+    /** Beneficiaries only, optional: the activation code is sent there too. */
+    private String email;
+
     private boolean active;
 
     @Column(name = "must_change_password")
@@ -205,6 +208,14 @@ public class Account {
 
     public Role getRole() {
         return role;
+    }
+
+    public void changeEmail(String email) {
+        this.email = email == null || email.isBlank() ? null : email;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public String getDisplayName() {

@@ -19,18 +19,27 @@ class BeneficiaryFileParserTest {
         List<ImportRow> rows = BeneficiaryFileParser.parse("liste.csv", csv.getBytes(StandardCharsets.UTF_8), 100);
 
         assertThat(rows).containsExactly(
-                new ImportRow(2, "Ben Salah", "Amira", "98 123 456"),
-                new ImportRow(4, "Trabelsi", "Karim", "+216 22 333 444"));
+                new ImportRow(2, "Ben Salah", "Amira", "98 123 456", ""),
+                new ImportRow(4, "Trabelsi", "Karim", "+216 22 333 444", ""));
     }
 
     @Test
     void readsTheExcelTemplate() {
-        byte[] xlsx = TabularExport.xlsx("modele", List.of("Nom", "Prénom", "Téléphone"),
-                List.of(List.of("Ben Salah", "Amira", 98123456)));
+        byte[] xlsx = TabularExport.xlsx("modele", List.of("Nom", "Prénom", "Téléphone", "E-mail"),
+                List.of(List.of("Ben Salah", "Amira", 98123456, "amira@exemple.tn")));
 
         List<ImportRow> rows = BeneficiaryFileParser.parse("liste.xlsx", xlsx, 100);
 
-        assertThat(rows).containsExactly(new ImportRow(2, "Ben Salah", "Amira", "98123456"));
+        assertThat(rows).containsExactly(new ImportRow(2, "Ben Salah", "Amira", "98123456", "amira@exemple.tn"));
+    }
+
+    @Test
+    void emailColumnIsOptionalAndAcceptsCommonHeaders() {
+        String csv = "Nom,Prénom,Téléphone,Adresse mail\nBen Salah,Amira,98123456, Amira@Exemple.TN \nTrabelsi,Karim,22333444,\n";
+
+        List<ImportRow> rows = BeneficiaryFileParser.parse("liste.csv", csv.getBytes(StandardCharsets.UTF_8), 100);
+
+        assertThat(rows).extracting(ImportRow::email).containsExactly("Amira@Exemple.TN", "");
     }
 
     @Test

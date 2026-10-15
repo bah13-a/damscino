@@ -13,6 +13,7 @@ services:
       # real SMS through "SMS Gateway for Android" (docs/SMS.md); the code is never returned to the app
       SMS_PROVIDER: ${SMS_PROVIDER:-android-gateway}
       SMS_EXPOSE_CODES: "false"
+      MAIL_PROVIDER: ${MAIL_PROVIDER:-smtp}
       SMS_MAX_PER_IP_HOUR: ${SMS_MAX_PER_IP_HOUR:-30}
   frontend:
     ports: !reset []

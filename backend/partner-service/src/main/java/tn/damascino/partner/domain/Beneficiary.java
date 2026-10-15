@@ -35,6 +35,9 @@ public class Beneficiary {
     @Column(nullable = false, unique = true)
     private String phone;
 
+    /** Optional: the activation code is sent there too. */
+    private String email;
+
     private boolean active;
 
     /** Temporary password, AES-GCM encrypted, kept only until the beneficiary activates the account. */
@@ -56,22 +59,24 @@ public class Beneficiary {
     protected Beneficiary() {
     }
 
-    public Beneficiary(UUID partnerId, String firstName, String lastName, String phone, Instant now) {
+    public Beneficiary(UUID partnerId, String firstName, String lastName, String phone, String email, Instant now) {
         this.id = UUID.randomUUID();
         this.partnerId = partnerId;
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
         this.phone = phone;
+        this.email = email;
         this.active = true;
         this.createdAt = now;
         this.updatedAt = now;
     }
 
-    public void update(UUID partnerId, String firstName, String lastName, String phone, Instant now) {
+    public void update(UUID partnerId, String firstName, String lastName, String phone, String email, Instant now) {
         this.partnerId = partnerId;
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
         this.phone = phone;
+        this.email = email;
         this.updatedAt = now;
     }
 
@@ -97,7 +102,7 @@ public class Beneficiary {
     }
 
     public BeneficiaryChanged snapshot() {
-        return new BeneficiaryChanged(id, partnerId, firstName, lastName, phone, active, createdAt);
+        return new BeneficiaryChanged(id, partnerId, firstName, lastName, phone, active, createdAt, email);
     }
 
     public UUID getId() {
@@ -118,6 +123,10 @@ public class Beneficiary {
 
     public String getPhone() {
         return phone;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public boolean isActive() {

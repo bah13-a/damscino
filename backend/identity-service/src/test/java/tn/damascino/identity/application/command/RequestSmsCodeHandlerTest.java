@@ -2,6 +2,7 @@ package tn.damascino.identity.application.command;
 
 import org.junit.jupiter.api.Test;
 import tn.damascino.common.web.ApiException;
+import tn.damascino.identity.application.mail.EmailSender;
 import tn.damascino.identity.application.sms.SmsRateLimiter;
 import tn.damascino.identity.application.sms.SmsSender;
 import tn.damascino.identity.domain.Account;
@@ -33,14 +34,83 @@ class RequestSmsCodeHandlerTest {
     private final AccountRepository accounts = mock(AccountRepository.class);
     private final SmsCodeRepository codes = mock(SmsCodeRepository.class);
     private final UUID partnerId = UUID.randomUUID();
+    private final EmailSender mail = mock(EmailSender.class);
 
     private RequestSmsCodeHandler handler(SmsSender sender, int maxPerIp) {
+        return handler(sender, maxPerIp, null);
+    }
+
+    private RequestSmsCodeHandler handler(SmsSender sender, int maxPerIp, String email) {
         Account account = Account.beneficiary(UUID.randomUUID(), partnerId, "98123456", "Amira", "hash", true, now);
+        account.changeEmail(email);
         when(accounts.findByUsername("98123456")).thenReturn(Optional.of(account));
         when(codes.findFirstByPhoneOrderByCreatedAtDesc(anyString())).thenReturn(Optional.empty());
         when(codes.findByPhoneAndConsumedFalse(anyString())).thenReturn(List.of());
-        return new RequestSmsCodeHandler(accounts, codes, sender, new SmsRateLimiter(clock, maxPerIp), clock,
+        return new RequestSmsCodeHandler(accounts, codes, sender, mail, new SmsRateLimiter(clock, maxPerIp), clock,
                 Duration.ofMinutes(5), Duration.ofSeconds(60), 3, true);
+    }
+
+    private static ApiException smsDown() {
+        return new ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "SMS_UNAVAILABLE",
+                "L'envoi du SMS a échoué.");
+    }
+
+    @Test
+    void sendsTheSameCodeBySmsAndByEmail() {
+        SmsSender sender = mock(SmsSender.class);
+        when(mail.send(anyString(), anyString(), anyString())).thenReturn(true);
+        org.mockito.ArgumentCaptor<String> sms = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.ArgumentCaptor<String> subject = org.mockito.ArgumentCaptor.forClass(String.class);
+
+        RequestSmsCodeCommand.Sent sent = handler(sender, 10, "amira@exemple.tn")
+                .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1"));
+
+        verify(sender).send(eq("+21698123456"), sms.capture());
+        verify(mail).send(eq("amira@exemple.tn"), subject.capture(), org.mockito.ArgumentMatchers.contains("est : "));
+        String code = sms.getValue().replaceAll(".*code est (\\d{6}).*", "$1");
+        assertThat(subject.getValue()).endsWith(code);
+        assertThat(sent.smsSent()).isTrue();
+        assertThat(sent.maskedEmail()).isEqualTo("a•••@exemple.tn");
+        assertThat(sent.devCode()).isNull();
+    }
+
+    @Test
+    void emailAloneIsEnoughWhenTheSmsFails() {
+        SmsSender sender = mock(SmsSender.class);
+        org.mockito.Mockito.doThrow(smsDown()).when(sender).send(anyString(), anyString());
+        when(mail.send(anyString(), anyString(), anyString())).thenReturn(true);
+
+        RequestSmsCodeCommand.Sent sent = handler(sender, 10, "amira@exemple.tn")
+                .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1"));
+
+        assertThat(sent.smsSent()).isFalse();
+        assertThat(sent.maskedEmail()).isEqualTo("a•••@exemple.tn");
+    }
+
+    @Test
+    void failsWhenNoChannelDeliveredTheCode() {
+        SmsSender sender = mock(SmsSender.class);
+        org.mockito.Mockito.doThrow(smsDown()).when(sender).send(anyString(), anyString());
+        when(mail.send(anyString(), anyString(), anyString())).thenReturn(false);
+
+        assertThatThrownBy(() -> handler(sender, 10, "amira@exemple.tn")
+                .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")))
+                .isInstanceOf(ApiException.class).hasMessageContaining("SMS");
+        assertThatThrownBy(() -> handler(sender, 10, null).handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")))
+                .isInstanceOf(ApiException.class);
+    }
+
+    @Test
+    void codeIsNotExposedOnceARealEmailLeft() {
+        SmsSender sender = mock(SmsSender.class);
+        when(sender.simulated()).thenReturn(true);
+        when(mail.send(anyString(), anyString(), anyString())).thenReturn(true);
+
+        assertThat(handler(sender, 10, "amira@exemple.tn")
+                .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")).devCode()).isNull();
+        when(mail.simulated()).thenReturn(true);
+        assertThat(handler(sender, 10, "amira@exemple.tn")
+                .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")).devCode()).matches("\\d{6}");
     }
 
     @Test

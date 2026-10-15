@@ -39,12 +39,13 @@ public class CreateBeneficiaryHandler implements CommandHandler<CreateBeneficiar
     public IssuedCredentials handle(CreateBeneficiaryCommand command) {
         Partner partner = support.partner(command.partnerId());
         String phone = support.validPhone(command.phone());
+        String email = PartnerCommandSupport.validEmail(command.email());
         if (beneficiaries.findByPhone(phone).isPresent()) {
             throw ApiException.conflict("PHONE_TAKEN", "Ce numéro de téléphone est déjà enregistré");
         }
         Beneficiary beneficiary = beneficiaries.save(new Beneficiary(partner.getId(),
                 PartnerCommandSupport.required(command.firstName(), "Le prénom"),
-                PartnerCommandSupport.required(command.lastName(), "Le nom"), phone, clock.instant()));
+                PartnerCommandSupport.required(command.lastName(), "Le nom"), phone, email, clock.instant()));
         events.publish(beneficiary.snapshot());
         IssuedCredentials credentials = credentialIssuer.issue(beneficiary);
         audit.record(command.actor(), "BENEFICIARY_CREATED", "BENEFICIARY", beneficiary.getId(),

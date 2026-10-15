@@ -30,7 +30,7 @@ class EligibilityPolicyTest {
     private BeneficiaryProjection beneficiary(boolean active) {
         UUID id = UUID.randomUUID();
         BeneficiaryProjection b = new BeneficiaryProjection(id);
-        b.apply(new BeneficiaryChanged(id, partnerId, "Amira", "Ben Salah", "98123456", active, Instant.now()));
+        b.apply(new BeneficiaryChanged(id, partnerId, "Amira", "Ben Salah", "98123456", active, Instant.now(), null));
         return b;
     }
 
