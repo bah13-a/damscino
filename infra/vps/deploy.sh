@@ -22,6 +22,9 @@ log()  { printf '\n\033[1;34m▶ %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m⚠ %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m❌ %s\033[0m\n' "$*" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || die "Lancez ce script avec sudo -E (le -E transmet GITHUB_TOKEN)."
+# one deployment at a time (manual run and GitHub Actions run would recreate the same containers)
+exec 9>/var/lock/damascino-deploy.lock
+flock -n 9 || die "Un autre déploiement est déjà en cours sur ce serveur : attendez sa fin (ps aux | grep deploy.sh)."
 
 # writes KEY=VALUE in .env (replaces the line if present)
 setenv() {
@@ -160,8 +163,14 @@ for attempt in 1 2 3; do
     "${COMPOSE[@]}" restart "$svc" >/dev/null || true
   done
 done
-"${COMPOSE[@]}" ps
-[ "$started" = 1 ] || die "Les services n'ont pas démarré. Logs complets : cd $DIR && docker compose logs <service>"
+"${COMPOSE[@]}" ps -a
+if [ "$started" != 1 ]; then
+  if dmesg 2>/dev/null | grep -qiE 'out of memory|oom-kill'; then
+    free -m
+    warn "Mémoire insuffisante : Linux a arrêté un service Java (code 137). Agrandissez l'instance (4 Go de RAM, ex. t3.medium) ou vérifiez le swap (free -m)."
+  fi
+  die "Les services n'ont pas démarré. Logs complets : cd $DIR && docker compose logs <service>"
+fi
 
 log "8/9 Vérifications"
 ok=1
