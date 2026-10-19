@@ -56,35 +56,33 @@ class RequestSmsCodeHandlerTest {
     }
 
     @Test
-    void sendsTheSameCodeBySmsAndByEmail() {
+    void emailIsTheMainChannelWhenTheListGivesAnAddress() {
         SmsSender sender = mock(SmsSender.class);
         when(mail.send(anyString(), anyString(), anyString())).thenReturn(true);
-        org.mockito.ArgumentCaptor<String> sms = org.mockito.ArgumentCaptor.forClass(String.class);
         org.mockito.ArgumentCaptor<String> subject = org.mockito.ArgumentCaptor.forClass(String.class);
 
         RequestSmsCodeCommand.Sent sent = handler(sender, 10, "amira@exemple.tn")
                 .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1"));
 
-        verify(sender).send(eq("+21698123456"), sms.capture());
         verify(mail).send(eq("amira@exemple.tn"), subject.capture(), org.mockito.ArgumentMatchers.contains("est : "));
-        String code = sms.getValue().replaceAll(".*code est (\\d{6}).*", "$1");
-        assertThat(subject.getValue()).endsWith(code);
-        assertThat(sent.smsSent()).isTrue();
+        assertThat(subject.getValue()).matches(".*: \\d{6}");
+        verify(sender, never()).send(anyString(), anyString());
+        assertThat(sent.smsSent()).isFalse();
         assertThat(sent.maskedEmail()).isEqualTo("a•••@exemple.tn");
         assertThat(sent.devCode()).isNull();
     }
 
     @Test
-    void emailAloneIsEnoughWhenTheSmsFails() {
+    void smsIsTheBackupWhenTheEmailFails() {
         SmsSender sender = mock(SmsSender.class);
-        org.mockito.Mockito.doThrow(smsDown()).when(sender).send(anyString(), anyString());
-        when(mail.send(anyString(), anyString(), anyString())).thenReturn(true);
+        when(mail.send(anyString(), anyString(), anyString())).thenReturn(false);
 
         RequestSmsCodeCommand.Sent sent = handler(sender, 10, "amira@exemple.tn")
                 .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1"));
 
-        assertThat(sent.smsSent()).isFalse();
-        assertThat(sent.maskedEmail()).isEqualTo("a•••@exemple.tn");
+        verify(sender).send(eq("+21698123456"), org.mockito.ArgumentMatchers.matches(".*code est \\d{6}\\..*"));
+        assertThat(sent.smsSent()).isTrue();
+        assertThat(sent.maskedEmail()).isNull();
     }
 
     @Test
@@ -95,17 +93,18 @@ class RequestSmsCodeHandlerTest {
 
         assertThatThrownBy(() -> handler(sender, 10, "amira@exemple.tn")
                 .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")))
-                .isInstanceOf(ApiException.class).hasMessageContaining("SMS");
+                .isInstanceOf(ApiException.class).hasMessageContaining("envoi du code a échoué");
         assertThatThrownBy(() -> handler(sender, 10, null).handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")))
                 .isInstanceOf(ApiException.class);
     }
 
     @Test
-    void codeIsNotExposedOnceARealEmailLeft() {
+    void codeIsOnlyExposedWhenTheChannelUsedIsSimulated() {
         SmsSender sender = mock(SmsSender.class);
         when(sender.simulated()).thenReturn(true);
         when(mail.send(anyString(), anyString(), anyString())).thenReturn(true);
 
+        // a real e-mail left: never shown in the app, even though the SMS sender is simulated
         assertThat(handler(sender, 10, "amira@exemple.tn")
                 .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")).devCode()).isNull();
         when(mail.simulated()).thenReturn(true);

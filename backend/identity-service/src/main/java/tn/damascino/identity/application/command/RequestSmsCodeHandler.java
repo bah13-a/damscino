@@ -27,8 +27,8 @@ import java.time.Instant;
 
 /**
  * Activation step 1: the number must be on a partner list (and on the list of the partner whose link was opened);
- * a 6-digit code is then sent by SMS and, when the partner list gives an address, the same code by e-mail. The
- * request succeeds as soon as one of the two channels delivered it.
+ * a 6-digit code is then sent by e-mail when the partner list gives an address (free, main channel), otherwise, or
+ * when the e-mail cannot be sent, by SMS (backup channel).
  */
 @Component
 public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeCommand, RequestSmsCodeCommand.Sent> {
@@ -100,36 +100,33 @@ public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeComma
         codes.findByPhoneAndConsumedFalse(phone).forEach(SmsCode::invalidate);
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
         codes.save(new SmsCode(account.getId(), phone, code, ttl, command.clientIp(), now));
-        ApiException smsFailure = null;
-        try {
-            // plain ASCII keeps the message in a single SMS
-            sender.send("+216" + phone, "Damascino Privileges : votre code est " + code + ". Valable "
-                    + ttl.toMinutes() + " min. Ne le communiquez a personne.");
-        } catch (ApiException e) {
-            smsFailure = e;
-        }
         String email = account.getEmail();
         boolean emailSent = email != null && mail.send(email, "Votre code Damascino Privilèges : " + code,
                 emailText(account.getDisplayName(), code));
-        if (smsFailure != null && !emailSent) {
-            throw smsFailure;
-        }
-        if (smsFailure != null) {
-            log.info("SMS en échec pour {} : code envoyé uniquement par e-mail", mask(phone));
+        if (!emailSent) {
+            if (email != null) {
+                log.info("E-mail en échec pour {} : code envoyé par SMS", mask(phone));
+            }
+            try {
+                // plain ASCII keeps the message in a single SMS
+                sender.send("+216" + phone, "Damascino Privileges : votre code est " + code + ". Valable "
+                        + ttl.toMinutes() + " min. Ne le communiquez a personne.");
+            } catch (ApiException e) {
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SMS_UNAVAILABLE",
+                        "L'envoi du code a échoué. Réessayez dans quelques minutes.");
+            }
         }
 
-        // never reveal a code that really left the server (SMS or e-mail)
-        boolean nothingReallySent = (smsFailure != null || sender.simulated()) && (!emailSent || mail.simulated());
+        // never reveal a code that really left the server
+        boolean simulated = emailSent ? mail.simulated() : sender.simulated();
         return new RequestSmsCodeCommand.Sent(mask(phone), ttl.toSeconds(), resendDelay.toSeconds(),
-                exposeCodes && nothingReallySent ? code : null, smsFailure == null,
-                emailSent ? Emails.mask(email) : null);
+                exposeCodes && simulated ? code : null, !emailSent, emailSent ? Emails.mask(email) : null);
     }
 
     private String emailText(String name, String code) {
         return "Bonjour " + name + ",\n\n"
                 + "Votre code d'activation Damascino Privilèges est : " + code + "\n\n"
-                + "Saisissez-le dans l'application. Il est valable " + ttl.toMinutes() + " minutes et vous a aussi "
-                + "été envoyé par SMS.\n"
+                + "Saisissez-le dans l'application. Il est valable " + ttl.toMinutes() + " minutes.\n"
                 + "Ne le communiquez à personne : Damascino ne vous le demandera jamais.\n\n"
                 + "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n\n"
                 + "Damascino — oriental kitchen and coffee";

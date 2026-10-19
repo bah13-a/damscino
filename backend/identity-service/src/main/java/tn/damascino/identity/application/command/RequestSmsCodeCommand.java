@@ -9,8 +9,8 @@ public record RequestSmsCodeCommand(String phone, UUID partnerId, String clientI
         implements Command<RequestSmsCodeCommand.Sent> {
 
     /**
-     * @param smsSent     false when the SMS could not be sent (the code then only left by e-mail)
-     * @param maskedEmail address the same code was sent to, null when none
+     * @param smsSent     true when the code left by SMS (no e-mail on the partner list, or the e-mail failed)
+     * @param maskedEmail address the code was sent to, null when it left by SMS
      * @param devCode     the code itself, only in the test environment when nothing is really sent
      */
     public record Sent(String maskedPhone, long expiresIn, long resendIn, String devCode, boolean smsSent,

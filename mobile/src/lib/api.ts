@@ -118,11 +118,11 @@ export interface SmsCodeSent {
   maskedPhone: string;
   expiresIn: number;
   resendIn: number;
-  /** Test environment only: no SMS is sent, the code is returned to the app. */
+  /** Test environment only: nothing is sent, the code is returned to the app. */
   devCode: string | null;
-  /** false when the SMS failed and the code only left by e-mail */
+  /** true when the code left by SMS (no e-mail on the partner list, or the e-mail failed) */
   smsSent?: boolean;
-  /** address the same code was sent to (masked), null when none */
+  /** address the code was sent to (masked), null when it left by SMS */
   maskedEmail?: string | null;
 }
 

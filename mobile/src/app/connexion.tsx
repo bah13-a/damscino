@@ -39,7 +39,7 @@ export default function LoginScreen() {
     : space === 'staff'
       ? 'Scanner des QR codes Damascino Privilèges en caisse.'
       : beneficiaryBySms
-        ? 'Saisissez le numéro de téléphone communiqué à votre entreprise : vous recevrez un code par SMS.'
+        ? 'Saisissez le numéro de téléphone communiqué à votre entreprise : vous recevrez un code par e-mail ou par SMS.'
         : "Connectez-vous avec l'identifiant et le mot de passe remis par votre entreprise.";
 
   return (
@@ -53,7 +53,7 @@ export default function LoginScreen() {
             accessibilityRole="link"
             onPress={() => router.setParams({ mode: beneficiaryBySms ? 'password' : 'sms' })}
           >
-            {beneficiaryBySms ? "J'ai un mot de passe" : 'Recevoir un code par SMS'}
+            {beneficiaryBySms ? "J'ai un mot de passe" : 'Recevoir un code'}
           </T>
         )}
         {SERVER_CHANGE_ALLOWED && (
@@ -71,7 +71,7 @@ export default function LoginScreen() {
   );
 }
 
-/** Activation and sign-in of beneficiaries: phone number, then the 6-digit code received by SMS. */
+/** Activation and sign-in of beneficiaries: phone number, then the 6-digit code received by e-mail (or SMS). */
 function SmsLogin({ partnerId, notice }: { partnerId?: string; notice: ReactNode }) {
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -129,7 +129,7 @@ function SmsLogin({ partnerId, notice }: { partnerId?: string; notice: ReactNode
           returnKeyType="go"
           onSubmitEditing={send}
         />
-        <Button title="Recevoir le code par SMS" large loading={loading} disabled={phone.replace(/\D/g, '').length < 8} onPress={send} />
+        <Button title="Recevoir mon code" large loading={loading} disabled={phone.replace(/\D/g, '').length < 8} onPress={send} />
       </>
     );
   }
@@ -142,10 +142,10 @@ function SmsLogin({ partnerId, notice }: { partnerId?: string; notice: ReactNode
         <Alert tone="success">{sentMessage(sent)}</Alert>
       )}
       {sent.devCode && (
-        <Alert tone="warning">Environnement de test : aucun SMS n’est envoyé. Votre code est {sent.devCode}.</Alert>
+        <Alert tone="warning">Environnement de test : aucun message n’est envoyé. Votre code est {sent.devCode}.</Alert>
       )}
       <Field
-        label="Code reçu par SMS"
+        label="Code reçu"
         placeholder="6 chiffres"
         keyboardType="number-pad"
         autoComplete="sms-otp"
@@ -235,12 +235,8 @@ function PasswordLogin({ space, notice }: { space: Space; notice: ReactNode }) {
 
 function sentMessage(sent: SmsCodeSent): string {
   const minutes = Math.round(sent.expiresIn / 60);
-  const bySms = sent.smsSent !== false;
-  if (bySms && sent.maskedEmail) {
-    return `Code envoyé par SMS au ${sent.maskedPhone} et par e-mail à ${sent.maskedEmail}. Il est valable ${minutes} minutes.`;
-  }
   if (sent.maskedEmail) {
-    return `Le SMS n’a pas pu partir : code envoyé par e-mail à ${sent.maskedEmail}. Il est valable ${minutes} minutes.`;
+    return `Code envoyé par e-mail à ${sent.maskedEmail}. Il est valable ${minutes} minutes. Pensez à regarder dans les courriers indésirables.`;
   }
   return `Code envoyé par SMS au ${sent.maskedPhone}. Il est valable ${minutes} minutes.`;
 }

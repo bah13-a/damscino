@@ -3,7 +3,7 @@ import { alertIn, Api, eventually, randomPhone, uid, WEB_URL } from './support';
 
 /** Activation of beneficiaries by SMS code (test environment: the code is shown in the app instead of being sent). */
 test.describe('Application · activation par SMS', () => {
-  test('avec un e-mail sur la liste du partenaire, le même code part aussi par e-mail', async ({ page, request }) => {
+  test("avec un e-mail sur la liste du partenaire, le code part par e-mail (le SMS n'est qu'un secours)", async ({ page, request }) => {
     const api = new Api(request);
     const admin = await api.admin();
     const partner = await api.createPartner(admin);
@@ -13,13 +13,12 @@ test.describe('Application · activation par SMS', () => {
 
     await page.goto(`/connexion?p=${partner.id}`);
     await page.getByLabel('Numéro de téléphone').fill(credentials.phone);
-    await page.getByRole('button', { name: 'Recevoir le code par SMS' }).click();
-    await expect(
-      page.getByText(`Code envoyé par SMS au +216 •• ••• ${credentials.phone.slice(5)} et par e-mail à s•••@exemple.tn`),
-    ).toBeVisible();
+    await page.getByRole('button', { name: 'Recevoir mon code' }).click();
+    await expect(page.getByText(/^Code envoyé par e-mail à s•••@exemple\.tn\. Il est valable 5 minutes\./)).toBeVisible();
+    await expect(page.getByText('Code envoyé par SMS')).toHaveCount(0);
 
     const devCode = (await page.getByText(/Votre code est \d{6}/).textContent())!.match(/\d{6}/)![0];
-    await page.getByLabel('Code reçu par SMS').fill(devCode);
+    await page.getByLabel('Code reçu', { exact: true }).fill(devCode);
     await page.getByRole('button', { name: 'Valider' }).click();
     await expect(page).toHaveURL(/\/espace$/);
   });
@@ -35,13 +34,13 @@ test.describe('Application · activation par SMS', () => {
     await page.goto(`/connexion?p=${partner.id}`);
     await expect(page.getByText(`Bienvenue aux collaborateurs de ${partner.name}.`)).toBeVisible();
     await page.getByLabel('Numéro de téléphone').fill(`+216 ${credentials.phone.slice(0, 2)} ${credentials.phone.slice(2, 5)} ${credentials.phone.slice(5)}`);
-    await page.getByRole('button', { name: 'Recevoir le code par SMS' }).click();
+    await page.getByRole('button', { name: 'Recevoir mon code' }).click();
     await expect(page.getByText(`Code envoyé par SMS au +216 •• ••• ${credentials.phone.slice(5)}`)).toBeVisible();
 
     const devCode = (await page.getByText(/Votre code est \d{6}/).textContent())!.match(/\d{6}/)![0];
     await expect(page.getByRole('button', { name: /Renvoyer un code \(\d+ s\)/ })).toBeDisabled();
 
-    const code = page.getByLabel('Code reçu par SMS');
+    const code = page.getByLabel('Code reçu', { exact: true });
     await code.fill(devCode === '000000' ? '111111' : '000000');
     await page.getByRole('button', { name: 'Valider' }).click();
     await expect(alertIn(page).first()).toHaveText('Code incorrect. Il reste 2 essais.');
@@ -67,7 +66,7 @@ test.describe('Application · activation par SMS', () => {
   test('un numéro absent des listes est refusé', async ({ page }) => {
     await page.goto('/connexion');
     await page.getByLabel('Numéro de téléphone').fill(randomPhone());
-    await page.getByRole('button', { name: 'Recevoir le code par SMS' }).click();
+    await page.getByRole('button', { name: 'Recevoir mon code' }).click();
     await expect(alertIn(page)).toHaveText(
       'Ce numéro ne figure sur aucune liste de bénéficiaires. Contactez le service RH de votre entreprise.',
     );

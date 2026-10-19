@@ -41,9 +41,9 @@ echo "Compte SMTP gratuit : Brevo (smtp-relay.brevo.com) ou Gmail (smtp.gmail.co
 MAIL_HOST="${MAIL_HOST:-}" MAIL_PORT="${MAIL_PORT:-}" MAIL_USERNAME="${MAIL_USERNAME:-}" MAIL_PASSWORD="${MAIL_PASSWORD:-}" MAIL_FROM="${MAIL_FROM:-}"
 ask MAIL_HOST "Serveur SMTP" "smtp-relay.brevo.com"
 ask MAIL_PORT "Port (587 ou 465)" "587"
-ask MAIL_USERNAME "Identifiant SMTP"
+ask MAIL_USERNAME "Login SMTP (Brevo → SMTP & API, ex. xxxx@smtp-brevo.com)"
 ask MAIL_PASSWORD "Mot de passe / clé SMTP" "" secret
-ask MAIL_FROM "Adresse d'expédition (validée chez le fournisseur)" "$MAIL_USERNAME"
+ask MAIL_FROM "Adresse d'expédition (validée dans Brevo → Senders)"
 [ -n "$MAIL_HOST" ] && [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$MAIL_FROM" ] \
   || die "Serveur, identifiant, mot de passe et adresse d'expédition sont obligatoires."
 [[ "$MAIL_PORT" =~ ^[0-9]+$ ]] || die "Port invalide."
