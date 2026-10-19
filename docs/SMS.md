@@ -22,40 +22,36 @@ Le **mot de passe temporaire** reste une solution de secours (lien *J'ai un mot 
 désactivé dès que le bénéficiaire s'active avec un code. Le **personnel de caisse** garde identifiant + code PIN, et
 l'**administration** son identifiant + mot de passe sur le site.
 
-## Envoi par e-mail : Brevo (gratuit)
+## Envoi par e-mail : Gmail (gratuit, sans moyen de paiement)
 
 L'e-mail du bénéficiaire se renseigne dans la colonne **E-mail** du fichier importé (modèle téléchargeable dans
 l'administration) ou dans le champ *E-mail* de la fiche bénéficiaire.
 
-L'envoi passe par **[Brevo](https://www.brevo.com)**, service d'envoi d'e-mails dont l'offre gratuite permet
-**300 e-mails par jour** (environ un e-mail par bénéficiaire à l'activation, puis seulement en cas de changement de
-téléphone). Un serveur de messagerie hébergé sur le serveur lui-même n'est pas utilisable : AWS bloque l'envoi
-direct d'e-mails (port 25) et les messageries (Gmail, Outlook…) classent en spam les e-mails d'un serveur sans nom de
-domaine configuré.
+L'envoi passe par un **compte Gmail** : gratuit, sans carte bancaire, environ **500 e-mails par jour** (environ un
+e-mail par bénéficiaire à l'activation, puis seulement en cas de changement de téléphone), et les e-mails arrivent en
+boîte de réception. Un serveur de messagerie hébergé sur le serveur lui-même n'est pas utilisable : AWS bloque l'envoi
+direct d'e-mails (port 25) et les messageries classent en spam les e-mails d'un serveur sans nom de domaine configuré.
 
 ### Mise en place (10 minutes, une seule fois)
 
-1. Créer un compte gratuit sur [brevo.com](https://www.brevo.com) (offre *Free*).
-2. **Expéditeur** : *Senders, Domains & Dedicated IPs* → *Senders* → *Add a sender* → nom `Damascino Privilèges` et
-   l'adresse qui enverra les codes (par exemple votre adresse Gmail ou `codes@damascino.tn`), puis cliquer le lien de
-   validation reçu à cette adresse.
-3. **Identifiants SMTP** : menu du compte → *SMTP & API* → onglet *SMTP* : relever le **Login** (de la forme
-   `xxxx@smtp-brevo.com`) et créer une **clé SMTP** (*Generate a new SMTP key*), à copier tout de suite.
+1. **Compte Gmail dédié** (conseillé), par exemple `damascino.privileges@gmail.com` : [accounts.google.com](https://accounts.google.com/signup).
+2. **Validation en 2 étapes** (obligatoire pour l'étape suivante) : [myaccount.google.com](https://myaccount.google.com)
+   → *Sécurité* → *Validation en deux étapes* → activer (avec le numéro de téléphone).
+3. **Mot de passe d'application** : [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → nom
+   `Damascino` → *Créer* : Google affiche un mot de passe de **16 lettres**, à copier tout de suite.
 4. Sur le serveur :
 
    ```bash
    sudo bash /opt/damascino/infra/configure-email.sh
    ```
 
-   Répondre : serveur `smtp-relay.brevo.com` (Entrée), port `587` (Entrée), le Login SMTP, la clé SMTP (elle ne
-   s'affiche pas), l'adresse d'expédition validée à l'étape 2, puis une adresse pour un **e-mail de test**. En cas
-   d'échec, le script affiche la cause et ne modifie rien.
+   Répondre : serveur `smtp.gmail.com` (Entrée), port `587` (Entrée), l'adresse Gmail, le mot de passe d'application
+   (il ne s'affiche pas ; les espaces sont acceptés), l'adresse d'expédition (Entrée = l'adresse Gmail), puis une
+   adresse pour un **e-mail de test**. En cas d'échec, le script affiche la cause et ne modifie rien.
 
-> Prévenez les bénéficiaires de regarder aussi dans les **courriers indésirables** (l'application le rappelle).
-> Avec un nom de domaine à vous (ex. `damascino.tn`), l'authentifier dans Brevo (*Domains*) réduit le classement en spam.
-
-Alternative : un compte **Gmail** (`smtp.gmail.com`, port 587, adresse Gmail + **mot de passe d'application** :
-compte Google → Sécurité → validation en 2 étapes → Mots de passe des applications), environ 500 e-mails par jour.
+Les e-mails partent au nom de **« Damascino Privilèges »** depuis l'adresse Gmail. Prévenez les bénéficiaires de
+regarder aussi dans les **courriers indésirables** (l'application le rappelle). Au-delà d'environ 500 codes par jour,
+Gmail suspend l'envoi jusqu'au lendemain : le code part alors par SMS si le secours est configuré.
 
 ## SMS de secours (facultatif)
 
@@ -119,8 +115,8 @@ réduit à presque rien.
 | `SMS_GATEWAY_URL` | — | `https://api.sms-gate.app/3rdparty/v1` (défaut) |
 | `SMS_GATEWAY_USER`, `SMS_GATEWAY_PASSWORD` | — | identifiants affichés par l'application Android |
 | `MAIL_PROVIDER` | `log` : aucun e-mail, écrit dans le journal | `smtp` |
-| `MAIL_HOST`, `MAIL_PORT` | — | serveur SMTP (`smtp-relay.brevo.com`, `587`) |
-| `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | — | identifiants SMTP et adresse d'expédition |
+| `MAIL_HOST`, `MAIL_PORT` | — | serveur SMTP (`smtp.gmail.com`, `587`) |
+| `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | — | adresse Gmail, mot de passe d'application, adresse d'expédition |
 | `SMS_CODE_TTL` | `5m` | `5m` |
 | `SMS_RESEND_DELAY` | `60s` | `60s` |
 | `SMS_MAX_PER_PHONE_HOUR` | `3` | `3` |

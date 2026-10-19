@@ -14,8 +14,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 /**
- * Sends through any SMTP server: free plans such as Brevo (smtp-relay.brevo.com, 300 e-mails a day) or a Gmail
- * account with an application password (smtp.gmail.com). Port 587 with STARTTLS, or 465 with SSL.
+ * Sends through any SMTP server, e.g. a free Gmail account (smtp.gmail.com, ~500 e-mails a day) with an application
+ * password. Port 587 with STARTTLS, or 465 with SSL.
  */
 public class SmtpEmailSender implements EmailSender {
 

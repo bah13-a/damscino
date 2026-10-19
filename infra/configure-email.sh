@@ -3,9 +3,8 @@
 #
 #   sudo bash infra/configure-email.sh
 #
-# Free SMTP accounts (docs/SMS.md):
-#   Brevo : smtp-relay.brevo.com, port 587, SMTP login + SMTP key (Brevo → SMTP & API), 300 e-mails a day
-#   Gmail : smtp.gmail.com, port 587, Gmail address + application password (Google account → Security)
+# Free SMTP account, no payment method (docs/SMS.md):
+#   Gmail : smtp.gmail.com, port 587, Gmail address + application password (Google account → Security), ~500 a day
 # The values are asked on screen (the password is not displayed), or taken from the environment
 # (MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM, TEST_EMAIL).
 set -euo pipefail
@@ -37,13 +36,14 @@ ask() { # ask VAR "question" [default] [secret]
   printf -v "$var" '%s' "$value"
 }
 
-echo "Compte SMTP gratuit : Brevo (smtp-relay.brevo.com) ou Gmail (smtp.gmail.com), voir docs/SMS.md."
+echo "Compte Gmail gratuit + mot de passe d'application (16 lettres), voir docs/SMS.md."
 MAIL_HOST="${MAIL_HOST:-}" MAIL_PORT="${MAIL_PORT:-}" MAIL_USERNAME="${MAIL_USERNAME:-}" MAIL_PASSWORD="${MAIL_PASSWORD:-}" MAIL_FROM="${MAIL_FROM:-}"
-ask MAIL_HOST "Serveur SMTP" "smtp-relay.brevo.com"
+ask MAIL_HOST "Serveur SMTP" "smtp.gmail.com"
 ask MAIL_PORT "Port (587 ou 465)" "587"
-ask MAIL_USERNAME "Login SMTP (Brevo → SMTP & API, ex. xxxx@smtp-brevo.com)"
-ask MAIL_PASSWORD "Mot de passe / clé SMTP" "" secret
-ask MAIL_FROM "Adresse d'expédition (validée dans Brevo → Senders)"
+ask MAIL_USERNAME "Adresse Gmail"
+ask MAIL_PASSWORD "Mot de passe d'application (16 lettres, pas le mot de passe Gmail)" "" secret
+MAIL_PASSWORD="${MAIL_PASSWORD// /}"
+ask MAIL_FROM "Adresse d'expédition" "$MAIL_USERNAME"
 [ -n "$MAIL_HOST" ] && [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$MAIL_FROM" ] \
   || die "Serveur, identifiant, mot de passe et adresse d'expédition sont obligatoires."
 [[ "$MAIL_PORT" =~ ^[0-9]+$ ]] || die "Port invalide."
@@ -61,8 +61,8 @@ if [ -n "$TEST_EMAIL" ]; then
     ok "E-mail de test envoyé à $TEST_EMAIL (vérifiez aussi les spams)"
   else
     cat /tmp/damascino-mail-test.log >&2
-    echo "Causes fréquentes : mot de passe Gmail normal au lieu d'un mot de passe d'application ; adresse"
-    echo "d'expédition non validée chez Brevo ; port bloqué (essayez 465)."
+    echo "Causes fréquentes : mot de passe Gmail normal au lieu d'un mot de passe d'application ; validation en"
+    echo "2 étapes non activée sur le compte Google ; port bloqué (essayez 465)."
     die "Échec de l'e-mail de test. La configuration n'a pas été modifiée."
   fi
 fi
@@ -76,4 +76,4 @@ setenv MAIL_FROM "$MAIL_FROM"
 ok "Configuration e-mail enregistrée dans .env"
 echo "Redémarrage du service d'identité…"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build --no-deps identity-service
-ok "Terminé : les bénéficiaires dont l'e-mail figure sur la liste du partenaire recevront le code par SMS et par e-mail."
+ok "Terminé : les bénéficiaires dont l'e-mail figure sur la liste du partenaire recevront leur code par e-mail."

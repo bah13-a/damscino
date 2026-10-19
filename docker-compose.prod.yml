@@ -15,9 +15,9 @@ services:
       # real SMS through "SMS Gateway for Android" (docs/SMS.md); the code is never returned to the app
       SMS_PROVIDER: ${SMS_PROVIDER:-android-gateway}
       SMS_EXPOSE_CODES: "false"
-      # main channel of the activation codes: free Brevo SMTP account (infra/configure-email.sh, docs/SMS.md)
+      # main channel of the activation codes: free Gmail account (infra/configure-email.sh, docs/SMS.md)
       MAIL_PROVIDER: ${MAIL_PROVIDER:-smtp}
-      MAIL_HOST: ${MAIL_HOST:-smtp-relay.brevo.com}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       SMS_MAX_PER_IP_HOUR: ${SMS_MAX_PER_IP_HOUR:-30}
   frontend:
     ports: !reset []
