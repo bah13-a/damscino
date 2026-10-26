@@ -39,15 +39,17 @@ direct d'e-mails (port 25) et les messageries classent en spam les e-mails d'un 
    → *Sécurité* → *Validation en deux étapes* → activer (avec le numéro de téléphone).
 3. **Mot de passe d'application** : [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) → nom
    `Damascino` → *Créer* : Google affiche un mot de passe de **16 lettres**, à copier tout de suite.
-4. Sur le serveur :
+4. Dans l'administration, menu **Messagerie** : saisir l'**adresse Gmail** et le **mot de passe d'application**
+   (les espaces sont acceptés), indiquer une adresse dans « Envoyer un e-mail de test à », cliquer **Envoyer un
+   e-mail de test**, vérifier la réception, puis **Enregistrer**. Le changement s'applique immédiatement, sans
+   redémarrage. En cas d'échec, l'écran explique la cause (mot de passe refusé, serveur injoignable…).
 
-   ```bash
-   sudo bash /opt/damascino/infra/configure-email.sh
-   ```
+   Le mot de passe est conservé **chiffré** (AES-256-GCM) dans la base et n'est jamais réaffiché ; pour le changer,
+   en saisir un nouveau. Chaque modification est tracée dans le **Journal**. Les *paramètres avancés* (serveur,
+   port, adresse d'expédition) ne servent que pour une autre messagerie que Gmail.
 
-   Répondre : serveur `smtp.gmail.com` (Entrée), port `587` (Entrée), l'adresse Gmail, le mot de passe d'application
-   (il ne s'affiche pas ; les espaces sont acceptés), l'adresse d'expédition (Entrée = l'adresse Gmail), puis une
-   adresse pour un **e-mail de test**. En cas d'échec, le script affiche la cause et ne modifie rien.
+   Variante sans l'interface, sur le serveur : `sudo bash /opt/damascino/infra/configure-email.sh` (variables
+   `MAIL_*` du fichier `.env`). Un compte saisi dans l'administration est prioritaire sur cette configuration.
 
 Les e-mails partent au nom de **« Damascino Privilèges »** depuis l'adresse Gmail. Prévenez les bénéficiaires de
 regarder aussi dans les **courriers indésirables** (l'application le rappelle). Au-delà d'environ 500 codes par jour,

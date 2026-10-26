@@ -27,7 +27,7 @@ spring:
         - id: identity-service
           uri: ${IDENTITY_URL:http://localhost:8081}
           predicates:
-            - Path=/api/auth/**,/api/accounts/**
+            - Path=/api/auth/**,/api/accounts/**,/api/mail-settings,/api/mail-settings/**
         - id: partner-service
           uri: ${PARTNER_URL:http://localhost:8082}
           predicates:

@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/caisses', label: 'Caisses' },
   { href: '/admin/rapprochement', label: 'Rapprochement' },
   { href: '/admin/comptes', label: 'Comptes' },
+  { href: '/admin/messagerie', label: 'Messagerie' },
   { href: '/admin/journal', label: 'Journal' },
 ];
 

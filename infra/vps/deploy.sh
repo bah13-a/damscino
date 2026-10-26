@@ -123,7 +123,7 @@ setenv ANDROID_APP_URL "/downloads/$APK_FILE"
 case "$TOKEN" in ''|ghs_*) ;; *) setenv GITHUB_TOKEN "$TOKEN" ;; esac
 grep -q '^SMS_GATEWAY_USER=' .env || printf 'SMS_GATEWAY_USER=\nSMS_GATEWAY_PASSWORD=\n' >> .env
 chmod 600 .env
-grep -q '^MAIL_USERNAME=.\+' .env || warn "E-mail (canal principal des codes) non configuré : sudo bash $DIR/infra/configure-email.sh (compte Gmail gratuit, docs/SMS.md)."
+grep -q '^MAIL_USERNAME=.\+' .env || echo "E-mail des codes : à saisir dans l'administration → Messagerie (compte Gmail gratuit, docs/SMS.md)."
 grep -q '^SMS_GATEWAY_USER=.\+' .env || echo "SMS de secours (bénéficiaires sans e-mail) non configuré : facultatif, voir docs/SMS.md."
 echo "Domaine : $DOMAIN"
 

@@ -21,7 +21,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
                                 "/api/auth/sms/request", "/api/auth/sms/verify").permitAll()
-                        .requestMatchers("/api/accounts/**").hasRole("ADMIN")
+                        .requestMatchers("/api/accounts/**", "/api/mail-settings/**", "/api/mail-settings").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .build();
     }

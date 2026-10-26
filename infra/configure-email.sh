@@ -7,6 +7,7 @@
 #   Gmail : smtp.gmail.com, port 587, Gmail address + application password (Google account → Security), ~500 a day
 # The values are asked on screen (the password is not displayed), or taken from the environment
 # (MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM, TEST_EMAIL).
+# Simpler: Administration → Messagerie, which takes precedence over this server configuration.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

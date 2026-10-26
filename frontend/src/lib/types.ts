@@ -283,3 +283,14 @@ export interface ReconciliationReport {
   passagesWithoutDiscount: ReconPassage[];
   rejectedRows: { line: number; reason: string }[];
 }
+
+export interface MailSettings {
+  source: 'ADMIN' | 'SERVER' | 'NONE';
+  host: string;
+  port: number;
+  username: string;
+  fromAddress: string;
+  passwordSet: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
