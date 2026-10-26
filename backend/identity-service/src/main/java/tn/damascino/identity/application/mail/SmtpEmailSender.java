@@ -15,7 +15,9 @@ public class SmtpEmailSender implements EmailSender {
 
     public SmtpEmailSender(String host, int port, String username, String password, String from, String fromName) {
         String sender = from == null || from.isBlank() ? username : from.trim();
-        this.connection = new SmtpMailer.Connection(host, port, username, password, sender, fromName);
+        // an account address without its password (entered later in Administration → Messagerie) is not usable yet
+        boolean missingPassword = username != null && !username.isBlank() && (password == null || password.isBlank());
+        this.connection = new SmtpMailer.Connection(missingPassword ? null : host, port, username, password, sender, fromName);
         // the service starts without settings (first installation): the code then leaves by SMS
         if (!connection.usable()) {
             log.warn("E-mail non configuré : Administration → Messagerie, ou variables MAIL_* (docs/SMS.md)");

@@ -18,6 +18,9 @@ services:
       # main channel of the activation codes: free Gmail account (infra/configure-email.sh, docs/SMS.md)
       MAIL_PROVIDER: ${MAIL_PROVIDER:-smtp}
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      # Damascino's Gmail account; its application password is entered in Administration → Messagerie
+      MAIL_USERNAME: ${MAIL_USERNAME:-damascinoprivileges@gmail.com}
+      MAIL_FROM: ${MAIL_FROM:-damascinoprivileges@gmail.com}
       SMS_MAX_PER_IP_HOUR: ${SMS_MAX_PER_IP_HOUR:-30}
   frontend:
     ports: !reset []

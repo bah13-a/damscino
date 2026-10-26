@@ -33,7 +33,20 @@ class MailSettingsServiceTest {
     private final AuthenticatedUser admin = new AuthenticatedUser(UUID.randomUUID(), Role.ADMIN, "Admin", null, 0, false);
 
     private MailSettingsService service(String provider) {
-        return new MailSettingsService(repository, vault, events, clock, provider, "", "", "", "Damascino Privilèges");
+        return new MailSettingsService(repository, vault, events, clock, provider, "", "", "", "", "Damascino Privilèges");
+    }
+
+    @Test
+    void theServerAddressPreFillsTheFormUntilAPasswordIsEntered() {
+        when(repository.current()).thenReturn(Optional.empty());
+        MailSettingsService withAddressOnly = new MailSettingsService(repository, vault, events, clock, "smtp",
+                "smtp.gmail.com", "damascinoprivileges@gmail.com", "", "", "Damascino Privilèges");
+
+        MailSettingsService.View view = withAddressOnly.view();
+
+        assertThat(view.username()).isEqualTo("damascinoprivileges@gmail.com");
+        assertThat(view.fromAddress()).isEqualTo("damascinoprivileges@gmail.com");
+        assertThat(view.source()).isEqualTo(MailSettingsService.Source.NONE);
     }
 
     private MailSettings saved(String password) {

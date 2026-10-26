@@ -37,6 +37,8 @@ public class MailSettingsService {
     private final EventPublisher events;
     private final Clock clock;
     private final boolean serverConfigured;
+    private final String serverUsername;
+    private final String serverFrom;
     private final String fromName;
 
     public MailSettingsService(MailSettingsRepository settings, MailSettingsVault vault, EventPublisher events,
@@ -44,13 +46,17 @@ public class MailSettingsService {
                                @Value("${damascino.mail.provider}") String provider,
                                @Value("${damascino.mail.host:}") String host,
                                @Value("${damascino.mail.username:}") String username,
+                               @Value("${damascino.mail.password:}") String password,
                                @Value("${damascino.mail.from:}") String from,
                                @Value("${damascino.mail.from-name:Damascino Privilèges}") String fromName) {
         this.settings = settings;
         this.vault = vault;
         this.events = events;
         this.clock = clock;
-        this.serverConfigured = "smtp".equals(provider) && !host.isBlank() && !(username + from).isBlank();
+        this.serverConfigured = "smtp".equals(provider) && !host.isBlank() && !username.isBlank() && !password.isBlank();
+        // the address of the server configuration pre-fills the form: only the password remains to enter
+        this.serverUsername = username;
+        this.serverFrom = from.isBlank() ? username : from;
         this.fromName = fromName;
     }
 
@@ -59,8 +65,8 @@ public class MailSettingsService {
         return settings.current()
                 .map(s -> new View(Source.ADMIN, s.getHost(), s.getPort(), s.getUsername(), s.getFromAddress(), true,
                         s.getUpdatedAt(), s.getUpdatedBy()))
-                .orElseGet(() -> new View(serverConfigured ? Source.SERVER : Source.NONE, "smtp.gmail.com", 587, "",
-                        "", false, null, null));
+                .orElseGet(() -> new View(serverConfigured ? Source.SERVER : Source.NONE, "smtp.gmail.com", 587,
+                        serverUsername, serverFrom, false, null, null));
     }
 
     @Transactional
