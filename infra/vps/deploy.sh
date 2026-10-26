@@ -6,6 +6,7 @@
 #
 # Private repository: the first run needs GITHUB_TOKEN=<token, read access to the repository contents> in the
 # environment; it is then kept in .env and reused for the code and the Android APK.
+# Without GitHub Actions (billing, quota): sudo BUILD_ON_SERVER=1 bash infra/vps/deploy.sh compiles here.
 # Re-running the script pulls the latest code, refreshes the APK and the application images; secrets and data are
 # kept. The images are built by GitHub Actions (.github/workflows/deploy.yml), which also runs this script on the
 # server after each change; the server only compiles them itself if they cannot be downloaded.
@@ -146,7 +147,11 @@ COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
 # images built by GitHub Actions (private: the token needs read access to the packages, which the token of an
 # Actions run has; a personal token needs the read:packages scope). Otherwise compiled here (15 to 30 minutes).
 UP=(up -d --remove-orphans --no-build)
-if [ -n "$TOKEN" ] && printf '%s' "$TOKEN" | docker login ghcr.io -u x-access-token --password-stdin >/dev/null 2>&1 \
+if [ "${BUILD_ON_SERVER:-0}" = 1 ]; then
+  # GitHub Actions unavailable (billing, quota…): compile the current code here (30 to 60 minutes on a small server)
+  echo "Compilation des images sur le serveur (BUILD_ON_SERVER=1) : 30 à 60 minutes sur une petite instance."
+  UP=(up -d --remove-orphans --build)
+elif [ -n "$TOKEN" ] && printf '%s' "$TOKEN" | docker login ghcr.io -u x-access-token --password-stdin >/dev/null 2>&1 \
    && "${COMPOSE[@]}" pull --quiet; then
   echo "✅ Images téléchargées depuis ghcr.io (version ${IMAGE_TAG:-latest})"
 else
