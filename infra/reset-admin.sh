@@ -18,7 +18,7 @@ fi
 PASSWORD="${PASSWORD:-Damascino2026!}"
 
 echo "▶ Réinitialisation du compte admin…"
-ADMIN_RESET=true "${COMPOSE[@]}" up -d --build --force-recreate --no-deps identity-service
+ADMIN_RESET=true "${COMPOSE[@]}" up -d --no-build --force-recreate --no-deps identity-service
 for _ in $(seq 1 60); do
   if "${COMPOSE[@]}" logs identity-service 2>&1 | grep -q "reset to the initial password"; then
     # back to normal: a later restart must not reset the password again
