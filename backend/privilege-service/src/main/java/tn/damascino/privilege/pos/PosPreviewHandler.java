@@ -8,6 +8,7 @@ import tn.damascino.common.events.RedemptionRejected;
 import tn.damascino.common.outbox.EventPublisher;
 import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.application.QuotaService;
+import tn.damascino.privilege.application.ScanNotices;
 import tn.damascino.privilege.domain.EligibilityPolicy;
 import tn.damascino.privilege.domain.RefusalReason;
 import tn.damascino.privilege.pos.PosDtos.PreviewRequest;
@@ -46,12 +47,14 @@ public class PosPreviewHandler implements CommandHandler<PosPreviewCommand, Prev
     private final PosProductRepository products;
     private final QuotaService quota;
     private final EventPublisher events;
+    private final ScanNotices notices;
     private final Clock clock;
     private final Duration reservationTtl;
 
     public PosPreviewHandler(QrTokenService qrTokens, BeneficiaryProjectionRepository beneficiaries,
                              PartnerProjectionRepository partners, PosReservationRepository reservations,
-                             PosProductRepository products, QuotaService quota, EventPublisher events, Clock clock,
+                             PosProductRepository products, QuotaService quota, EventPublisher events,
+                             ScanNotices notices, Clock clock,
                              @Value("${damascino.pos.reservation-ttl:15m}") Duration reservationTtl) {
         this.qrTokens = qrTokens;
         this.beneficiaries = beneficiaries;
@@ -60,6 +63,7 @@ public class PosPreviewHandler implements CommandHandler<PosPreviewCommand, Prev
         this.products = products;
         this.quota = quota;
         this.events = events;
+        this.notices = notices;
         this.clock = clock;
         this.reservationTtl = reservationTtl;
     }
@@ -135,6 +139,8 @@ public class PosPreviewHandler implements CommandHandler<PosPreviewCommand, Prev
         reservation.applyTo(choice.get(), partner.getDiscountPercent(), now.plus(reservationTtl), now);
         reservations.save(reservation);
 
+        notices.scanned(beneficiary.getId(), PosRequests.staffName(command.terminal(), request.cashier()),
+                partner.getDiscountPercent());
         BigDecimal total = total(request.lines());
         return new PreviewResponse("VALID", null, "Avantage valide", reservation.getId(), reservation.getReservedUntil(),
                 new PosDtos.Beneficiary(beneficiary.fullName(), partner.getName()),
@@ -149,6 +155,7 @@ public class PosPreviewHandler implements CommandHandler<PosPreviewCommand, Prev
                 p == null ? null : p.getId(), p == null ? null : p.getName(),
                 command.terminal().terminalId(), PosRequests.staffName(command.terminal(), command.request().cashier()),
                 reason.name(), "POS", clock.instant()));
+        notices.refused(b, PosRequests.staffName(command.terminal(), command.request().cashier()), reason);
         return new PreviewResponse("REFUSED", reason.name(), reason.message(), null, null,
                 b == null || !b.isKnown() ? null : new PosDtos.Beneficiary(b.fullName(), p == null ? null : p.getName()),
                 null, total(command.request().lines()), total(command.request().lines()));

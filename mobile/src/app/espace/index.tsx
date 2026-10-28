@@ -1,6 +1,7 @@
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
+import { ScanNotice } from '@/components/ScanNotice';
 import { Screen } from '@/components/Screen';
 import { Alert, Badge, Button, Card, Logo, Spinner, T } from '@/components/ui';
 import { api, errorMessage, logout } from '@/lib/api';
@@ -44,9 +45,10 @@ export default function BeneficiaryHome() {
     return () => subscription.remove();
   }, [load]);
 
-  // a freshly imported account may take a few seconds to reach the privilege service
+  // a freshly imported account may take a few seconds to reach the privilege service; a code being processed at
+  // the till is followed until the cashier finishes
   useEffect(() => {
-    if (dashboard?.availability !== 'PENDING') return;
+    if (dashboard?.availability !== 'PENDING' && dashboard?.lastScan?.status !== 'VALID') return;
     const timer = setTimeout(load, 3000);
     return () => clearTimeout(timer);
   }, [dashboard, load]);
@@ -130,6 +132,15 @@ export default function BeneficiaryHome() {
               </T>
             )}
           </Card>
+
+          {dashboard.lastScan && (
+            <Card style={{ gap: 8 }}>
+              <T variant="title" accessibilityRole="header">
+                Dernier scan en caisse
+              </T>
+              <ScanNotice scan={dashboard.lastScan} />
+            </Card>
+          )}
 
           <Card style={{ gap: 8 }}>
             <T variant="title" accessibilityRole="header">

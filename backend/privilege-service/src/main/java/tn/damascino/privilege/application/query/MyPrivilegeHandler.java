@@ -7,11 +7,13 @@ import tn.damascino.common.cqrs.QueryHandler;
 import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.application.query.MyPrivilegeQuery.Availability;
 import tn.damascino.privilege.application.query.MyPrivilegeQuery.Dashboard;
+import tn.damascino.privilege.application.query.MyPrivilegeQuery.LastScan;
 import tn.damascino.privilege.application.query.MyPrivilegeQuery.Passage;
 import tn.damascino.privilege.domain.EligibilityPolicy;
 import tn.damascino.privilege.application.QuotaService;
 import tn.damascino.privilege.domain.RedemptionRepository;
 import tn.damascino.privilege.domain.RefusalReason;
+import tn.damascino.privilege.domain.ScanNoticeRepository;
 import tn.damascino.privilege.projection.BeneficiaryProjection;
 import tn.damascino.privilege.projection.BeneficiaryProjectionRepository;
 import tn.damascino.privilege.projection.PartnerProjection;
@@ -28,14 +30,17 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
     private final PartnerProjectionRepository partners;
     private final RedemptionRepository redemptions;
     private final QuotaService quota;
+    private final ScanNoticeRepository scanNotices;
     private final Clock clock;
 
     public MyPrivilegeHandler(BeneficiaryProjectionRepository beneficiaries, PartnerProjectionRepository partners,
-                              RedemptionRepository redemptions, QuotaService quota, Clock clock) {
+                              RedemptionRepository redemptions, QuotaService quota, ScanNoticeRepository scanNotices,
+                              Clock clock) {
         this.beneficiaries = beneficiaries;
         this.partners = partners;
         this.redemptions = redemptions;
         this.quota = quota;
+        this.scanNotices = scanNotices;
         this.clock = clock;
     }
 
@@ -56,7 +61,7 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
         if (beneficiary == null || !beneficiary.isKnown() || partner == null) {
             return new Dashboard(query.user().displayName(), null, null, List.of(), List.of(), 0, null, 0,
                     Availability.PENDING, "Votre compte est en cours d'activation, réessayez dans un instant.", null,
-                    null, List.of());
+                    null, List.of(), null);
         }
 
         LocalDate today = LocalDate.now(clock);
@@ -91,6 +96,15 @@ public class MyPrivilegeHandler implements QueryHandler<MyPrivilegeQuery, Dashbo
                 partner.getEligibleCategories(), partner.getExcludedCategories(), partner.getUsagesPerPeriod(),
                 partner.getUsagePeriod(), used, availability, message,
                 availability == Availability.USED ? partner.getUsagePeriod().nextStart(today) : null,
-                partner.getConventionEnd(), history);
+                partner.getConventionEnd(), history, lastScan(beneficiary, today));
+    }
+
+    /** Only today's scan: yesterday's result would be stale on a screen that announces what just happened. */
+    private LastScan lastScan(BeneficiaryProjection beneficiary, LocalDate today) {
+        return scanNotices.findById(beneficiary.getId())
+                .filter(n -> LocalDate.ofInstant(n.getScannedAt(), clock.getZone()).equals(today))
+                .map(n -> new LastScan(n.getStatus(), n.getReason(), n.getMessage(), n.getStaffName(),
+                        n.getDiscountPercent(), n.getDishPrice(), n.getDiscountAmount(), n.getScannedAt()))
+                .orElse(null);
     }
 }

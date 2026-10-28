@@ -26,6 +26,18 @@ export interface Passage {
 
 export type Availability = 'AVAILABLE' | 'USED' | 'CONVENTION_NOT_STARTED' | 'CONVENTION_EXPIRED' | 'INACTIVE' | 'PENDING';
 
+/** What happened to the QR code at the till today, shown live on the customer's phone. */
+export interface LastScan {
+  status: 'VALID' | 'CONFIRMED' | 'REFUSED';
+  reason: string | null;
+  message: string;
+  staffName: string | null;
+  discountPercent: number | null;
+  dishPrice: number | null;
+  discountAmount: number | null;
+  scannedAt: string;
+}
+
 export interface Dashboard {
   fullName: string;
   partnerName: string | null;
@@ -40,6 +52,7 @@ export interface Dashboard {
   nextAvailableOn: string | null;
   conventionEnd: string | null;
   history: Passage[];
+  lastScan: LastScan | null;
 }
 
 export interface QrCode {

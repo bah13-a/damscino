@@ -19,7 +19,36 @@ arrière.
 - **Captures d'écran bloquées** sur l'écran du QR code (Android ; masquage dans le sélecteur d'applications sur iOS).
 - **Luminosité au maximum** et écran maintenu allumé pendant l'affichage du QR code.
 - **Scanner natif** de la caméra, plus rapide et plus fiable que dans un navigateur, avec vibration au résultat.
+- **Douchette** (lecteur de QR code 2D) au choix de la caméra, dans l'espace caissier : voir ci-dessous.
+- **Résultat du scan en direct chez le client** : dès que le caissier scanne, le téléphone du client affiche
+  « Code scanné en caisse », puis « Remise appliquée » (pourcentage, montant, caissier, heure) ou le motif du refus.
+  Le dernier scan du jour reste visible dans « Mon espace ».
 - Icône et écran de démarrage aux couleurs de Damascino.
+
+## Scan au téléphone ou à la douchette
+
+L'écran du scanner (compte caissier) propose deux modes, mémorisés sur l'appareil :
+
+| Mode | Matériel | Usage |
+|---|---|---|
+| **Caméra du téléphone** | téléphone ou tablette de caisse | viser le QR code affiché par le client |
+| **Douchette** | lecteur de QR code 2D **Bluetooth** (ou USB avec adaptateur OTG) appairé au téléphone/tablette | scanner le QR code, sans toucher l'écran |
+
+La douchette fonctionne comme un clavier : elle « tape » le code dans le champ de l'écran, avec ou sans Entrée à la
+fin (le code est reconnu dès qu'il est complet). Le clavier virtuel ne s'ouvre pas. Après un passage validé ou un
+refus, la douchette reste prête pour le client suivant.
+
+Mise en service d'une douchette :
+
+1. Choisir un lecteur **2D** (les lecteurs 1D ne lisent que les codes-barres) en mode **clavier HID** Bluetooth.
+2. Android → Paramètres → Bluetooth → appairer le lecteur.
+3. Régler la **langue du clavier physique** d'Android sur celle de la douchette (souvent « Anglais (US) ») :
+   Paramètres → Système → Clavier physique. Sinon les chiffres d'un code lu en AZERTY sont mal transcrits et le code
+   est refusé (« QR code invalide »).
+4. Application → compte caissier → onglet **Douchette** → scanner un QR code de test.
+
+La douchette doit être reliée au téléphone ou à la tablette qui affiche l'espace caissier. Branchée sur le PC de la
+caisse MACAISSERES, elle taperait le code dans le logiciel de caisse, qui ne sait pas le vérifier.
 
 ## Technique
 

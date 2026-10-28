@@ -53,3 +53,9 @@ export const PERIOD_LABEL: Record<string, string> = { DAY: 'jour', WEEK: 'semain
 export function phone(value: string): string {
   return value.replace(/(\d{2})(\d{3})(\d{3})/, '$1 $2 $3');
 }
+
+/** "12:34" in Tunis time. */
+export function time(value: string | null | undefined): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(value));
+}

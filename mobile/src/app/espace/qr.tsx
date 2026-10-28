@@ -3,14 +3,15 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { Redirect, router } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, StyleSheet, View } from 'react-native';
+import { AppState, Platform, StyleSheet, Vibration, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { discountText, ScanNotice } from '@/components/ScanNotice';
 import { Alert, Button, Card, MotifBand, Spinner, T } from '@/components/ui';
 import { api, ApiError, errorMessage } from '@/lib/api';
-import { dt, percent } from '@/lib/format';
+import { dt, percent, time } from '@/lib/format';
 import { colors, fonts } from '@/lib/theme';
-import type { Dashboard, QrCode } from '@/lib/types';
+import type { Dashboard, LastScan, QrCode } from '@/lib/types';
 import { homeOf, useSession } from '@/lib/useSession';
 
 const clock = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Tunis' });
@@ -34,7 +35,7 @@ function useDisplayProtection() {
   }, []);
 }
 
-/** QR code of the day: renewed every 30 s, closed automatically once validated at the till. */
+/** QR code of the day, closed automatically once validated at the till; every scan of it is shown live. */
 export default function QrScreen() {
   useKeepAwake();
   useDisplayProtection();
@@ -44,8 +45,25 @@ export default function QrScreen() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [validated, setValidated] = useState(false);
+  const [scan, setScan] = useState<LastScan | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const fetchedAt = useRef(0);
+  // scan already known when the screen opened: only the scans made while the code is displayed are announced
+  const knownScan = useRef<string | null | undefined>(undefined);
+
+  const receive = useCallback((current: Dashboard) => {
+    setDashboard(current);
+    const last = current.lastScan;
+    if (knownScan.current === undefined) {
+      knownScan.current = last?.scannedAt ?? null;
+    } else if (last && last.scannedAt !== knownScan.current) {
+      knownScan.current = last.scannedAt;
+      setScan(last);
+      Vibration.vibrate(last.status === 'REFUSED' ? [0, 60, 60, 60] : 80);
+      if (last.status === 'CONFIRMED') setValidated(true);
+    }
+    if (current.availability === 'USED') setValidated(true);
+  }, []);
 
   const refreshQr = useCallback(async () => {
     try {
@@ -91,11 +109,11 @@ export default function QrScreen() {
     refreshQr();
     // Load dashboard data without blocking QR display
     api<Dashboard>('/api/privileges/me')
-      .then(setDashboard)
+      .then(receive)
       .catch(() => {
         // Dashboard is optional - proceed without it
       });
-  }, [refreshQr]);
+  }, [refreshQr, receive]);
 
   // renew the code on the interval announced by the server
   useEffect(() => {
@@ -104,20 +122,18 @@ export default function QrScreen() {
     return () => clearTimeout(timer);
   }, [qr, validated, refreshQr]);
 
-  // detect the validation at the till
+  // follow the scans at the till (cashier's phone, handheld scanner or till) and detect the validation
   useEffect(() => {
     if (validated || error) return;
     const timer = setInterval(async () => {
       try {
-        const current = await api<Dashboard>('/api/privileges/me');
-        setDashboard(current);
-        if (current.availability === 'USED') setValidated(true);
+        receive(await api<Dashboard>('/api/privileges/me'));
       } catch {
         // keep showing the code; the next renewal surfaces real errors
       }
-    }, 4000);
+    }, 2500);
     return () => clearInterval(timer);
-  }, [validated, error]);
+  }, [validated, error, receive]);
 
   // live clock (helps the cashier spot a recording) + a fresh code when the app comes back
   useEffect(() => {
@@ -153,10 +169,12 @@ export default function QrScreen() {
             <T variant="display" accessibilityRole="header">
               Avantage utilisé
             </T>
-            <T variant="muted" style={{ textAlign: 'center' }}>
-              {lastPassage
-                ? `Remise de ${percent(lastPassage.discountPercent)}${lastPassage.discountAmount !== null ? ` (${dt(lastPassage.discountAmount)})` : ''} appliquée.`
-                : 'Votre passage a bien été enregistré.'}{' '}
+            <T variant="muted" style={{ textAlign: 'center' }} testID="validated-detail">
+              {scan?.status === 'CONFIRMED'
+                ? `Remise de ${discountText(scan)} appliquée à ${time(scan.scannedAt)}${scan.staffName ? ` par ${scan.staffName}` : ''}.`
+                : lastPassage
+                  ? `Remise de ${percent(lastPassage.discountPercent)}${lastPassage.discountAmount !== null ? ` (${dt(lastPassage.discountAmount)})` : ''} appliquée.`
+                  : 'Votre passage a bien été enregistré.'}{' '}
               Bon appétit !
             </T>
             <Button title="Terminer" style={{ alignSelf: 'stretch', marginTop: 8 }} onPress={() => router.replace('/espace')} />
@@ -168,6 +186,7 @@ export default function QrScreen() {
           </Card>
         ) : (
           <Card style={styles.center}>
+            {scan && <ScanNotice scan={scan} />}
             <T variant="title">{dashboard?.fullName ?? session.displayName}</T>
             {dashboard?.partnerName ? <T variant="muted">{dashboard.partnerName}</T> : null}
             <View style={styles.qr} testID="qr-code" accessibilityLabel="QR code à présenter en caisse">

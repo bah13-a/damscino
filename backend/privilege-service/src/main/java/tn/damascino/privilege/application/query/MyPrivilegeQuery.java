@@ -29,6 +29,14 @@ public record MyPrivilegeQuery(AuthenticatedUser user) implements Query<MyPrivil
                           BigDecimal discountAmount) {
     }
 
+    /**
+     * Last scan of the beneficiary's QR code today: VALID (read at the till, being finalised), CONFIRMED (discount
+     * applied) or REFUSED with the reason. The QR screen polls it to show the result as soon as the cashier scans.
+     */
+    public record LastScan(String status, String reason, String message, String staffName, BigDecimal discountPercent,
+                           BigDecimal dishPrice, BigDecimal discountAmount, Instant scannedAt) {
+    }
+
     public record Dashboard(
             String fullName,
             String partnerName,
@@ -42,6 +50,7 @@ public record MyPrivilegeQuery(AuthenticatedUser user) implements Query<MyPrivil
             String availabilityMessage,
             LocalDate nextAvailableOn,
             LocalDate conventionEnd,
-            List<Passage> history) {
+            List<Passage> history,
+            LastScan lastScan) {
     }
 }

@@ -8,6 +8,7 @@ import tn.damascino.common.outbox.EventPublisher;
 import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.application.ScanEvaluator;
 import tn.damascino.privilege.application.ScanEvaluator.Evaluation;
+import tn.damascino.privilege.application.ScanNotices;
 import tn.damascino.privilege.application.ScanResult;
 import tn.damascino.privilege.domain.Redemption;
 import tn.damascino.privilege.domain.RedemptionRepository;
@@ -31,14 +32,16 @@ public class ConfirmRedemptionHandler implements CommandHandler<ConfirmRedemptio
     private final RedemptionRepository redemptions;
     private final EventPublisher events;
     private final TillSettingsRepository tillSettings;
+    private final ScanNotices notices;
     private final Clock clock;
 
     public ConfirmRedemptionHandler(ScanEvaluator evaluator, RedemptionRepository redemptions, EventPublisher events,
-                                    TillSettingsRepository tillSettings, Clock clock) {
+                                    TillSettingsRepository tillSettings, ScanNotices notices, Clock clock) {
         this.tillSettings = tillSettings;
         this.evaluator = evaluator;
         this.redemptions = redemptions;
         this.events = events;
+        this.notices = notices;
         this.clock = clock;
     }
 
@@ -67,6 +70,8 @@ public class ConfirmRedemptionHandler implements CommandHandler<ConfirmRedemptio
                 redemption.getDishPrice(), redemption.getDiscountPercent(), redemption.getDiscountAmount(),
                 redemption.getValidatedAt(), redemption.getChannel(), null, null, null,
                 redemption.getValidationCode()));
+        notices.confirmed(b.getId(), command.staff().displayName(), redemption.getDiscountPercent(),
+                redemption.getDishPrice(), redemption.getDiscountAmount());
 
         return new ScanResult(ScanResult.Status.CONFIRMED, null, "Passage validé", b.fullName(), p.getName(),
                 p.getDiscountPercent(), p.getEligibleCategories(), p.getExcludedCategories(),

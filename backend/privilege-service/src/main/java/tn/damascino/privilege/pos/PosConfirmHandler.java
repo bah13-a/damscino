@@ -7,6 +7,7 @@ import tn.damascino.common.events.RedemptionConfirmed;
 import tn.damascino.common.outbox.EventPublisher;
 import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.application.QuotaService;
+import tn.damascino.privilege.application.ScanNotices;
 import tn.damascino.privilege.domain.EligibilityPolicy;
 import tn.damascino.privilege.domain.Redemption;
 import tn.damascino.privilege.domain.RedemptionRepository;
@@ -30,17 +31,19 @@ public class PosConfirmHandler implements CommandHandler<PosConfirmCommand, Conf
     private final PartnerProjectionRepository partners;
     private final QuotaService quota;
     private final EventPublisher events;
+    private final ScanNotices notices;
     private final Clock clock;
 
     public PosConfirmHandler(PosReservationRepository reservations, RedemptionRepository redemptions,
                              BeneficiaryProjectionRepository beneficiaries, PartnerProjectionRepository partners,
-                             QuotaService quota, EventPublisher events, Clock clock) {
+                             QuotaService quota, EventPublisher events, ScanNotices notices, Clock clock) {
         this.reservations = reservations;
         this.redemptions = redemptions;
         this.beneficiaries = beneficiaries;
         this.partners = partners;
         this.quota = quota;
         this.events = events;
+        this.notices = notices;
         this.clock = clock;
     }
 
@@ -68,18 +71,20 @@ public class PosConfirmHandler implements CommandHandler<PosConfirmCommand, Conf
             return confirmed(reservation, done, beneficiary, partner);
         }
         Instant now = clock.instant();
+        String staffName = PosRequests.staffName(command.terminal(), reservation.getCashier());
         if (!reservation.isActive(now)) {
             reservation.expired(now);
+            notices.refused(beneficiary, staffName, RefusalReason.RESERVATION_EXPIRED);
             return refused(RefusalReason.RESERVATION_EXPIRED, request.ticketId());
         }
         long used = quota.usedExcluding(reservation.getBeneficiaryId(), reservation.getPeriodKey(), reservation.getId());
         RefusalReason refusal = EligibilityPolicy.evaluate(beneficiary, partner, LocalDate.now(clock), used).orElse(null);
         if (refusal != null) {
             reservation.cancelled(now);
+            notices.refused(beneficiary, staffName, refusal);
             return refused(refusal, request.ticketId());
         }
 
-        String staffName = PosRequests.staffName(command.terminal(), reservation.getCashier());
         Redemption redemption = redemptions.saveAndFlush(Redemption.fromTill(beneficiary.getId(), partner.getId(),
                 command.terminal().terminalId(), staffName, reservation.getPeriodKey(), reservation.getQrNonce(),
                 reservation.getTicketId(), reservation.getDishLabel(), reservation.getDishPrice(),
@@ -92,6 +97,8 @@ public class PosConfirmHandler implements CommandHandler<PosConfirmCommand, Conf
                 redemption.getDiscountAmount(), redemption.getValidatedAt(), Redemption.CHANNEL_POS,
                 command.terminal().name(), redemption.getTicketId(), redemption.getDishLabel(),
                 redemption.getValidationCode()));
+        notices.confirmed(beneficiary.getId(), staffName, redemption.getDiscountPercent(), redemption.getDishPrice(),
+                redemption.getDiscountAmount());
         return confirmed(reservation, redemption, beneficiary, partner);
     }
 

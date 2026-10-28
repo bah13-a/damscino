@@ -27,16 +27,18 @@ public class ScanEvaluator {
     private final PartnerProjectionRepository partners;
     private final QuotaService quota;
     private final EventPublisher events;
+    private final ScanNotices notices;
     private final Clock clock;
 
     public ScanEvaluator(QrTokenService qrTokens, BeneficiaryProjectionRepository beneficiaries,
                          PartnerProjectionRepository partners, QuotaService quota, EventPublisher events,
-                         Clock clock) {
+                         ScanNotices notices, Clock clock) {
         this.qrTokens = qrTokens;
         this.beneficiaries = beneficiaries;
         this.partners = partners;
         this.quota = quota;
         this.events = events;
+        this.notices = notices;
         this.clock = clock;
     }
 
@@ -93,6 +95,7 @@ public class ScanEvaluator {
                 b == null ? null : b.getId(), b == null ? null : b.fullName(),
                 p == null ? null : p.getId(), p == null ? null : p.getName(),
                 staff.accountId(), staff.displayName(), evaluation.refusal().name(), stage, clock.instant()));
+        notices.refused(b, staff.displayName(), evaluation.refusal());
         return new ScanResult(ScanResult.Status.REFUSED, evaluation.refusal().name(), evaluation.refusal().message(),
                 b == null ? null : b.fullName(), p == null ? null : p.getName(),
                 p == null ? null : p.getDiscountPercent(), p == null ? null : p.getEligibleCategories(),
