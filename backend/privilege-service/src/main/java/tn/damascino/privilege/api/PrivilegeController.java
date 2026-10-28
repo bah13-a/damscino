@@ -67,11 +67,9 @@ public class PrivilegeController {
     public record DailyQrResponse(String qrCode) {
     }
 
-    /** QR code of the day, renewed at midnight. */
+    /** QR code of the day, renewed at midnight (screen of the beneficiary app). */
     @GetMapping("/qr/daily")
     public DailyQrResponse dailyQr() {
-        var user = SecuritySupport.currentUser();
-        String qrCode = dailyQrService.getOrGenerateDailyQr(user.beneficiaryId());
-        return new DailyQrResponse(qrCode);
+        return new DailyQrResponse(dailyQrService.getOrGenerateDailyQr(SecuritySupport.currentUser()));
     }
 }

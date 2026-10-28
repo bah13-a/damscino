@@ -52,6 +52,20 @@ public class GenerateQrHandler implements CommandHandler<GenerateQrCommand, Gene
     @Transactional(readOnly = true)
     public GenerateQrCommand.QrCode handle(GenerateQrCommand command) {
         AuthenticatedUser user = command.user();
+        BeneficiaryProjection beneficiary = checkCanShowQr(user);
+
+        Instant now = clock.instant();
+        Instant expiresAt = now.plus(ttl);
+        String token = qrTokens.sign(new QrPayload(beneficiary.getId(), Secrets.randomToken(16),
+                user.sessionVersion(), expiresAt));
+        return new GenerateQrCommand.QrCode(token, expiresAt, refreshInterval.toSeconds(), now);
+    }
+
+    /**
+     * Rules for displaying a QR code (also used by the QR code of the day): beneficiary account, current session,
+     * active convention and advantage not yet used for the period.
+     */
+    public BeneficiaryProjection checkCanShowQr(AuthenticatedUser user) {
         if (user.role() != Role.BENEFICIARY || user.beneficiaryId() == null) {
             throw ApiException.forbidden("FORBIDDEN", "Réservé aux bénéficiaires");
         }
@@ -72,11 +86,6 @@ public class GenerateQrHandler implements CommandHandler<GenerateQrCommand, Gene
         if (refusal != null) {
             throw new ApiException(HttpStatus.CONFLICT, refusal.name(), refusal.message());
         }
-
-        Instant now = clock.instant();
-        Instant expiresAt = now.plus(ttl);
-        String token = qrTokens.sign(new QrPayload(beneficiary.getId(), Secrets.randomToken(16),
-                user.sessionVersion(), expiresAt));
-        return new GenerateQrCommand.QrCode(token, expiresAt, refreshInterval.toSeconds(), now);
+        return beneficiary;
     }
 }

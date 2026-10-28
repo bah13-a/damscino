@@ -43,6 +43,13 @@ public class DailyQr {
         this.generatedAt = generatedAt;
     }
 
+    /** New code for the rest of the day (the previous one was used or revoked). */
+    public void renew(String qrCode, Instant when) {
+        this.qrCode = qrCode;
+        this.generatedAt = when;
+        this.usedAt = null;
+    }
+
     public void markAsUsed(Instant when) {
         if (usedAt == null) {
             this.usedAt = when;
