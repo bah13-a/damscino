@@ -8,53 +8,63 @@ import { categoryLabel, dateTime } from '@/lib/format';
 import type { ApplyMode, Category, PosProduct, PosTerminal, PosTerminalWithKey, TillSettings } from '@/lib/types';
 import { useApi } from '@/lib/useApi';
 
-/** Shows a freshly generated API key once, with the link of the handheld scanner station that carries it. */
-function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; onClose: () => void }) {
-  const [copied, setCopied] = useState<'key' | 'link' | null>(null);
-  if (!created) return null;
-  const stationLink = `${window.location.origin}/douchette#cle=${encodeURIComponent(created.apiKey)}`;
+/** One of the addresses of the modal, with its copy button. */
+function Copyable({ label, value, testId, copied, onCopy }: { label: string; value: string; testId: string; copied: boolean; onCopy: () => void }) {
   return (
-    <Modal open title={`Clé d'API · ${created.terminal.name}`} onClose={onClose}>
+    <>
+      <p className="mt-2 break-all rounded-xl bg-canvas p-3 font-mono text-xs" data-testid={testId}>
+        {value}
+      </p>
+      <Button
+        className="mt-2"
+        size="sm"
+        variant="secondary"
+        onClick={async () => {
+          await navigator.clipboard?.writeText(value);
+          onCopy();
+        }}
+      >
+        {copied ? 'Copié ✓' : label}
+      </Button>
+    </>
+  );
+}
+
+/**
+ * Shows a freshly generated API key once, with the addresses that carry it: network scanner (the recommended set-up
+ * when the till has neither phone nor PC), scanner station page, and the key itself for the till vendor.
+ */
+function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; onClose: () => void }) {
+  const [copied, setCopied] = useState<'scanner' | 'station' | 'key' | null>(null);
+  if (!created) return null;
+  const key = encodeURIComponent(created.apiKey);
+  const scannerUrl = `${window.location.origin}/api/pos/v1/douchette/${key}`;
+  const stationLink = `${window.location.origin}/douchette#cle=${key}`;
+  return (
+    <Modal open title={`Douchette · ${created.terminal.name}`} onClose={onClose}>
       <Alert tone="info">
-        Copiez-les maintenant : ils ne seront plus affichés. En cas de perte, régénérez une clé (l&apos;ancienne et son lien
-        cessent aussitôt de fonctionner).
+        Copiez ces adresses maintenant : elles ne seront plus affichées. En cas de perte, « Nouvelle clé » en donne de
+        nouvelles et les anciennes cessent aussitôt de fonctionner.
       </Alert>
-      <h3 className="mt-4 font-semibold">Lien du poste douchette</h3>
+
+      <h3 className="mt-5 font-semibold">Douchette réseau (Wi-Fi ou Ethernet) — recommandé</h3>
       <p className="text-sm text-muted">
-        À ouvrir <strong>une fois</strong> dans le navigateur du PC de caisse où la douchette est branchée : le poste reste
-        ensuite configuré, sans connexion du caissier.
+        Adresse d&apos;envoi à saisir une fois dans la douchette (réglage « HTTP » / « URL du serveur »). Chaque QR code lu
+        est validé et le résultat s&apos;affiche sur le téléphone du client. La colonne « Dernier appel » confirme que la
+        douchette est bien reliée.
       </p>
-      <p className="mt-2 break-all rounded-xl bg-canvas p-3 font-mono text-xs" data-testid="station-link">
-        {stationLink}
-      </p>
-      <div className="mt-2 flex gap-2">
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            await navigator.clipboard?.writeText(stationLink);
-            setCopied('link');
-          }}
-        >
-          {copied === 'link' ? 'Copié ✓' : 'Copier le lien'}
-        </Button>
-        <a href={stationLink} target="_blank" rel="noopener" className="inline-flex items-center rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
-          Ouvrir le poste sur ce PC
-        </a>
-      </div>
-      <h3 className="mt-6 font-semibold">Clé d&apos;API (éditeur de la caisse)</h3>
-      <p className="mt-4 break-all rounded-xl bg-canvas p-3 font-mono text-sm" data-testid="api-key">
-        {created.apiKey}
-      </p>
-      <div className="mt-4 flex gap-2">
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            await navigator.clipboard?.writeText(created.apiKey);
-            setCopied('key');
-          }}
-        >
-          {copied === 'key' ? 'Copiée ✓' : 'Copier la clé'}
-        </Button>
+      <Copyable label="Copier l'adresse" value={scannerUrl} testId="scanner-url" copied={copied === 'scanner'} onCopy={() => setCopied('scanner')} />
+
+      <details className="mt-5 text-sm">
+        <summary className="cursor-pointer font-semibold">Autres branchements</summary>
+        <h4 className="mt-3 font-semibold">Douchette USB sur un PC ou une tablette</h4>
+        <p className="text-muted">Lien à ouvrir une fois dans le navigateur de l&apos;appareil où la douchette est branchée.</p>
+        <Copyable label="Copier le lien" value={stationLink} testId="station-link" copied={copied === 'station'} onCopy={() => setCopied('station')} />
+        <h4 className="mt-4 font-semibold">Clé d&apos;API (éditeur du logiciel de caisse)</h4>
+        <Copyable label="Copier la clé" value={created.apiKey} testId="api-key" copied={copied === 'key'} onCopy={() => setCopied('key')} />
+      </details>
+
+      <div className="mt-6 flex justify-end">
         <Button onClick={onClose}>Fermer</Button>
       </div>
     </Modal>
@@ -87,11 +97,11 @@ function Terminals() {
 
   return (
     <section>
-      <h2 className="mb-1 font-display text-xl font-semibold">Postes de caisse</h2>
+      <h2 className="mb-1 font-display text-xl font-semibold">Caisses et douchettes</h2>
       <p className="mb-4 text-sm text-muted">
-        Chaque caisse a sa propre clé d&apos;API, révocable à tout moment. À la création, un <strong>lien de poste
-        douchette</strong> est fourni : ouvert sur le PC de caisse, il transforme ce PC en poste de scan (douchette USB),
-        sans connexion du caissier. La clé sert aussi à l&apos;éditeur si la caisse appelle l&apos;API elle-même.
+        Ajoutez une caisse pour obtenir l&apos;<strong>adresse de sa douchette</strong> : une douchette réseau (Wi-Fi ou
+        Ethernet) y envoie chaque QR code lu, sans téléphone ni PC à la caisse. Le client voit la validation sur son
+        téléphone. « Révoquer » coupe la douchette à tout moment.
       </p>
       {(error || terminals.error) && <Alert>{error ?? terminals.error}</Alert>}
       <form onSubmit={create} className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -99,7 +109,7 @@ function Terminals() {
         <Button type="submit">Ajouter la caisse</Button>
       </form>
       {terminals.data && terminals.data.length > 0 && (
-        <Table head={['Caisse', 'Clé', 'Statut', 'Dernier appel', '']}>
+        <Table head={['Caisse', 'Clé', 'Statut', 'Dernier appel (dernier scan)', '']}>
           {terminals.data.map((t) => (
             <tr key={t.id} className={t.active ? '' : 'opacity-60'}>
               <td className="px-4 py-3 font-medium">{t.name}</td>
@@ -346,8 +356,8 @@ export default function TillsPage() {
         <AssistedDiscountSettings />
         <div className="border-t border-line pt-8">
           <p className="mb-6 text-sm text-muted">
-            <strong>Caisse sans téléphone</strong> — douchette branchée sur le PC de caisse (lien de poste douchette), ou
-            caisse connectée par l&apos;éditeur : la remise est validée sans tablette.
+            <strong>Caisse sans téléphone</strong> — une douchette réseau valide les QR codes et le client voit le résultat
+            sur son téléphone ; le caissier applique ensuite la remise standard.
           </p>
           <div className="space-y-10">
             <Terminals />

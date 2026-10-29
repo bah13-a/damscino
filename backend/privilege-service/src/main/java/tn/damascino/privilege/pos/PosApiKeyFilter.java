@@ -15,8 +15,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-/** Authenticates calls of the till API ({@code /api/pos/v1/**}) with the {@code X-Api-Key} header. */
+/**
+ * Authenticates calls of the till API ({@code /api/pos/v1/**}) with the {@code X-Api-Key} header, or with the key at
+ * the end of the network scanner address ({@value #SCANNER_PATH}{@code <key>}): those devices only let you enter a URL.
+ */
 public class PosApiKeyFilter extends OncePerRequestFilter {
+
+    public static final String SCANNER_PATH = "/api/pos/v1/douchette/";
 
     private final PosTerminalRepository terminals;
     private final Clock clock;
@@ -35,6 +40,10 @@ public class PosApiKeyFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String key = request.getHeader(PosApiKeys.HEADER);
+        String uri = request.getRequestURI();
+        if ((key == null || key.isBlank()) && uri.startsWith(SCANNER_PATH)) {
+            key = uri.substring(SCANNER_PATH.length());
+        }
         if (key != null && !key.isBlank()) {
             terminals.findByKeyHash(PosApiKeys.hash(key)).filter(PosTerminal::isActive).ifPresent(terminal -> {
                 SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(

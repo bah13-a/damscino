@@ -214,7 +214,7 @@ export default function HandheldStationPage() {
             <h1 className="font-display text-2xl font-semibold">Poste non configuré</h1>
             <p className="mt-2 text-muted">
               Ouvrez sur ce PC le lien du poste douchette donné par l’administration (Administration → Intégration caisse →
-              Postes de caisse → « Lien douchette »).
+              Caisses et douchettes → « Autres branchements »).
             </p>
           </div>
         ) : setupError ? (

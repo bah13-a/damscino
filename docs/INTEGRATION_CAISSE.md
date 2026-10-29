@@ -22,13 +22,46 @@ Deux modes, qui peuvent coexister :
 3. Créer un compte « Personnel scanner » par caissier (Administration → Comptes) et installer l'Espace personnel sur
    la tablette ou le téléphone de chaque caisse.
 
-### Caisse sans téléphone : poste douchette (aucun développement dans la caisse)
+### Caisse sans téléphone ni PC : douchette réseau (recommandé)
+
+La douchette est reliée à Internet (Wi-Fi ou câble Ethernet) et envoie elle-même chaque QR code lu au serveur. Rien
+n'est installé ni modifié dans la caisse. Le caissier scanne, le **téléphone du client affiche la validation**
+(« Remise appliquée −20 % » ou « Refusé en caisse » avec le motif), puis le caissier applique la remise standard
+« Damascino Privilèges » dans MACAISSERES.
+
+**Choisir la douchette** (toutes marques) :
+
+| Critère | Pourquoi |
+|---|---|
+| Lecteur **2D à capteur CMOS (imageur)** | lit les QR codes affichés sur l'écran d'un téléphone (un lecteur laser 1D ne les lit pas) |
+| **Wi-Fi** ou **Ethernet** | la douchette se connecte seule à Internet |
+| Envoi **HTTP / HTTPS** (« HTTP POST », « HTTP client », « Web API ») vers une **URL** configurable | elle transmet le code lu à l'adresse donnée par l'administration |
+| **HTTPS** pris en charge | le site n'accepte que les connexions chiffrées |
+| Modèle **sur socle / présentation** (mains libres), idéalement | le client présente son téléphone dessous |
+
+À demander au fournisseur : « la douchette peut-elle envoyer le contenu lu par HTTP POST (ou GET) vers une URL HTTPS
+que je choisis ? ». Le format exact de l'envoi n'a pas d'importance (JSON, formulaire, texte, paramètre d'URL) : le
+serveur retrouve le QR code dans la requête.
+
+**Mise en place** (une fois par caisse, tout depuis l'administration) :
+
+1. **Administration → Intégration caisse → Caisses et douchettes** : ajouter la caisse (ex. « Caisse 1 – Salle »).
+2. La fenêtre affiche l'**adresse de la douchette** (`https://<adresse du site>/api/pos/v1/douchette/<clé>`, affichée
+   une seule fois). La saisir dans la douchette avec son réseau Wi-Fi, à l'aide de l'outil du fabricant (page de
+   réglage ou codes de configuration à scanner), une fois pour toutes.
+3. Scanner un QR code client : la colonne **« Dernier appel »** de l'administration se met à jour, le téléphone du
+   client affiche la validation.
+
+Pour couper la douchette : **Révoquer**. Pour changer d'adresse (douchette perdue) : **Nouvelle clé**, puis saisir la
+nouvelle adresse dans la douchette.
+
+### Douchette USB sur un PC ou une tablette : poste douchette
 
 La douchette (USB, mode clavier) est branchée sur le PC de caisse. Une page de Damascino Privilèges, ouverte dans le
 navigateur de ce PC, reçoit les scans :
 
-1. **Administration → Intégration caisse → Postes de caisse** : ajouter la caisse (ex. « Caisse 1 – Salle »). La
-   fenêtre affiche le **lien du poste douchette** (il contient la clé de la caisse, affiché une seule fois).
+1. **Administration → Intégration caisse → Caisses et douchettes** : ajouter la caisse, puis « Autres branchements »
+   → **lien du poste douchette** (il contient la clé de la caisse, affiché une seule fois).
 2. Sur le PC de caisse, ouvrir ce lien **une fois** dans le navigateur (Chrome ou Edge), puis l'ajouter aux favoris ou
    au démarrage : le poste reste configuré, l'adresse devient `https://<adresse du site>/douchette`. Aucune connexion
    du caissier n'est demandée. Facultatif : saisir le nom du caissier sur la page.
