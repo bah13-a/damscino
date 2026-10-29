@@ -74,6 +74,8 @@ public class Redemption {
 
     public static final String CHANNEL_SCANNER = "SCANNER";
     public static final String CHANNEL_POS = "POS";
+    /** The customer scanned the QR code stuck on the counter with the app. */
+    public static final String CHANNEL_COUNTER = "COUNTER";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     protected Redemption() {
@@ -106,6 +108,17 @@ public class Redemption {
         redemption.posTerminalId = terminalId;
         redemption.ticketId = ticketId;
         redemption.dishLabel = dishLabel;
+        return redemption;
+    }
+
+    /** The customer scanned the counter QR code of the till {@code terminalId}. */
+    public static Redemption fromCounter(UUID beneficiaryId, UUID partnerId, UUID terminalId, String terminalLabel,
+                                         String periodKey, String nonce, BigDecimal discountPercent,
+                                         Instant validatedAt) {
+        Redemption redemption = new Redemption(beneficiaryId, partnerId, terminalId, terminalLabel, periodKey, nonce,
+                null, discountPercent, validatedAt);
+        redemption.channel = CHANNEL_COUNTER;
+        redemption.posTerminalId = terminalId;
         return redemption;
     }
 

@@ -2,6 +2,7 @@ package tn.damascino.privilege.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -22,6 +23,8 @@ public class SecurityConfig {
                 .addFilterBefore(new PosApiKeyFilter(terminals, clock), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/privileges/counter/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/privileges/counter/*/use").hasRole("BENEFICIARY")
                         .requestMatchers("/api/privileges/me", "/api/privileges/qr", "/api/privileges/qr/daily").hasRole("BENEFICIARY")
                         .requestMatchers("/api/privileges/scan/**", "/api/privileges/settings").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers("/api/pos/v1/**").hasRole("POS")

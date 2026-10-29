@@ -3,6 +3,7 @@ package tn.damascino.privilege.api;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,12 +11,16 @@ import org.springframework.web.bind.annotation.RestController;
 import tn.damascino.common.cqrs.CommandBus;
 import tn.damascino.common.cqrs.QueryBus;
 import tn.damascino.common.security.SecuritySupport;
+import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.application.DailyQrService;
 import tn.damascino.privilege.application.ScanResult;
 import tn.damascino.privilege.application.command.ConfirmRedemptionCommand;
+import tn.damascino.privilege.application.command.CounterScanCommand;
 import tn.damascino.privilege.application.command.GenerateQrCommand;
 import tn.damascino.privilege.application.command.VerifyScanCommand;
 import tn.damascino.privilege.application.query.MyPrivilegeQuery;
+import tn.damascino.privilege.pos.PosTerminal;
+import tn.damascino.privilege.pos.PosTerminalRepository;
 
 import java.math.BigDecimal;
 
@@ -26,11 +31,14 @@ public class PrivilegeController {
     private final CommandBus commands;
     private final QueryBus queries;
     private final DailyQrService dailyQrService;
+    private final PosTerminalRepository terminals;
 
-    public PrivilegeController(CommandBus commands, QueryBus queries, DailyQrService dailyQrService) {
+    public PrivilegeController(CommandBus commands, QueryBus queries, DailyQrService dailyQrService,
+                               PosTerminalRepository terminals) {
         this.commands = commands;
         this.queries = queries;
         this.dailyQrService = dailyQrService;
+        this.terminals = terminals;
     }
 
     public record ScanRequest(@NotBlank String token) {
@@ -71,5 +79,22 @@ public class PrivilegeController {
     @GetMapping("/qr/daily")
     public DailyQrResponse dailyQr() {
         return new DailyQrResponse(dailyQrService.getOrGenerateDailyQr(SecuritySupport.currentUser()));
+    }
+
+    public record Counter(String tillName) {
+    }
+
+    /** Public: name of the till of a counter QR code (page opened by a phone camera, app before validating). */
+    @GetMapping("/counter/{code}")
+    public Counter counter(@PathVariable String code) {
+        return terminals.findByCounterCode(code).filter(PosTerminal::isActive)
+                .map(t -> new Counter(t.getName()))
+                .orElseThrow(() -> ApiException.notFound("QR code de caisse"));
+    }
+
+    /** The beneficiary scanned the counter QR code: validates the passage of the period. */
+    @PostMapping("/counter/{code}/use")
+    public CounterScanCommand.Result useAtCounter(@PathVariable String code) {
+        return commands.dispatch(new CounterScanCommand(SecuritySupport.currentUser(), code));
     }
 }

@@ -113,7 +113,7 @@ export default function BeneficiaryHome() {
               </>
             )}
             {dashboard.availability === 'AVAILABLE' ? (
-              <Button title="Utiliser mon avantage" large style={styles.cta} onPress={() => router.push('/espace/qr')} />
+              <Button title="Utiliser mon avantage" large style={styles.cta} onPress={() => router.push('/espace/comptoir')} />
             ) : (
               <Button
                 large

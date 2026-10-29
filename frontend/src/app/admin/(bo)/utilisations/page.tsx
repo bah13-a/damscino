@@ -83,7 +83,7 @@ export default function UsagesPage() {
                     <td className="px-4 py-3">{u.partnerName}</td>
                     <td className="px-4 py-3">
                       {u.staffName}
-                      <div className="mt-0.5">{u.channel === 'POS' ? <Badge tone="brand">Caisse</Badge> : <Badge>Scanner</Badge>}</div>
+                      <div className="mt-0.5">{u.channel === 'POS' ? <Badge tone="brand">Caisse</Badge> : u.channel === 'COUNTER' ? <Badge tone="brand">QR de caisse</Badge> : <Badge>Scanner</Badge>}</div>
                     </td>
                     <td className="px-4 py-3 tabular-nums">
                       {u.dishLabel && <div>{u.dishLabel}</div>}

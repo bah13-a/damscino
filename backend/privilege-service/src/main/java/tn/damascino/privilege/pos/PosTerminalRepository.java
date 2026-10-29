@@ -16,6 +16,8 @@ public interface PosTerminalRepository extends JpaRepository<PosTerminal, UUID> 
 
     boolean existsByNameIgnoreCase(String name);
 
+    Optional<PosTerminal> findByCounterCode(String counterCode);
+
     List<PosTerminal> findAllByOrderByNameAsc();
 
     @Transactional

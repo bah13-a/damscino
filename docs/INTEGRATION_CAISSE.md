@@ -22,7 +22,35 @@ Deux modes, qui peuvent coexister :
 3. Créer un compte « Personnel scanner » par caissier (Administration → Comptes) et installer l'Espace personnel sur
    la tablette ou le téléphone de chaque caisse.
 
-### Caisse sans téléphone ni PC : douchette réseau (recommandé)
+### Caisse sans téléphone ni douchette : QR de caisse (recommandé)
+
+Aucun matériel à la caisse : une étiquette imprimée suffit.
+
+**Mise en place, une fois, dans l'administration** : Intégration caisse → **Caisses** → ajouter la caisse → bouton
+**« QR de caisse »** → **Imprimer l'étiquette**, à coller sur le comptoir.
+
+**Au comptoir :**
+
+1. Le client ouvre l'application → **« Utiliser mon avantage »** → l'appareil photo s'ouvre.
+2. Il scanne l'étiquette de la caisse.
+3. Le serveur vérifie le compte connecté (actif, convention valide, **pas déjà utilisé sur la période**) et enregistre
+   le passage.
+4. Le téléphone affiche **« Remise validée −20 % »** (nom, partenaire, caisse, code, horloge en direct et badge animé,
+   pour repérer une capture d'écran) ou **« Remise refusée »** avec le motif.
+5. Le client montre l'écran au caissier, qui applique la remise standard « Damascino Privilèges » dans la caisse.
+
+**Règles :** l'étiquette ne donne aucun droit, elle dit seulement où se trouve le client. Le droit vient du compte
+connecté dans l'application (un seul téléphone à la fois) : un nouveau scan le même jour est refusé (« Avantage déjà
+utilisé : il sera de nouveau disponible demain »), avec n'importe quelle caisse, un autre téléphone ou une photo de
+l'étiquette. L'avantage revient à minuit (ou en début de semaine / de mois selon la période du partenaire). Scanné avec
+l'appareil photo du téléphone, sans l'application, le code ouvre une page d'explication et ne valide rien.
+
+**Gestion :** « Nouveau QR » remplace une étiquette abîmée ou photographiée (l'ancienne est aussitôt refusée) ;
+« Révoquer » désactive la caisse. Les passages apparaissent dans Utilisations avec le canal **« QR de caisse »**, et
+dans le rapprochement. Le client peut toujours afficher son propre QR code pour un scan par le caissier (lien « Le
+caissier scanne mon QR code »).
+
+### Douchette réseau (Wi-Fi ou Ethernet)
 
 La douchette est reliée à Internet (Wi-Fi ou câble Ethernet) et envoie elle-même chaque QR code lu au serveur. Rien
 n'est installé ni modifié dans la caisse. Le caissier scanne, le **téléphone du client affiche la validation**

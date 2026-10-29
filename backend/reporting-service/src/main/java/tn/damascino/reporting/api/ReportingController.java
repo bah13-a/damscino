@@ -47,7 +47,8 @@ public class ReportingController {
             Map.entry("CONVENTION_EXPIRED", "Convention expirée"),
             Map.entry("QUOTA_REACHED", "Déjà utilisé sur la période"),
             Map.entry("NO_ELIGIBLE_ITEM", "Aucun plat éligible sur le ticket"),
-            Map.entry("TICKET_ALREADY_DISCOUNTED", "Ticket déjà remisé"));
+            Map.entry("TICKET_ALREADY_DISCOUNTED", "Ticket déjà remisé"),
+            Map.entry("COUNTER_UNKNOWN", "QR de caisse inconnu ou désactivé"));
 
     private final QueryBus queries;
 
@@ -76,7 +77,7 @@ public class ReportingController {
         for (UsageLogQuery.Row r : page.items()) {
             rows.add(Arrays.asList(dateTime(r.validatedAt()), r.beneficiaryName(), r.partnerName(), r.staffName(),
                     r.dishPrice(), r.discountPercent(), r.discountAmount(),
-                    "POS".equals(r.channel()) ? "Caisse" : "Scanner", r.ticketId(), r.dishLabel(), r.validationCode(),
+                    "POS".equals(r.channel()) ? "Caisse" : "COUNTER".equals(r.channel()) ? "QR de caisse" : "Scanner", r.ticketId(), r.dishLabel(), r.validationCode(),
                     r.cancelledAt() == null ? "" : "Annulé le " + dateTime(r.cancelledAt()) + " (" + r.cancelReason() + ")"));
         }
         return TabularExport.response("utilisations", format, List.of("Date et heure", "Bénéficiaire", "Partenaire",
@@ -138,7 +139,7 @@ public class ReportingController {
         List<List<Object>> rows = new ArrayList<>();
         for (RejectionLogQuery.Row r : page.items()) {
             rows.add(Arrays.asList(dateTime(r.occurredAt()), r.beneficiaryName(), r.partnerName(), r.staffName(),
-                    REASONS.getOrDefault(r.reason(), r.reason()), "CONFIRM".equals(r.stage()) ? "Confirmation" : "POS".equals(r.stage()) ? "Caisse" : "Contrôle"));
+                    REASONS.getOrDefault(r.reason(), r.reason()), "CONFIRM".equals(r.stage()) ? "Confirmation" : "POS".equals(r.stage()) ? "Caisse" : "COUNTER".equals(r.stage()) ? "QR de caisse" : "Contrôle"));
         }
         return TabularExport.response("refus", format, List.of("Date et heure", "Bénéficiaire", "Partenaire",
                 "Membre du personnel", "Motif", "Étape"), rows);

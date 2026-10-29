@@ -31,8 +31,8 @@ function Copyable({ label, value, testId, copied, onCopy }: { label: string; val
 }
 
 /**
- * Shows a freshly generated API key once, with the addresses that carry it: network scanner (the recommended set-up
- * when the till has neither phone nor PC), scanner station page, and the key itself for the till vendor.
+ * After creating a till: points to its counter QR code (all a till without phone nor PC needs), and shows once the
+ * optional addresses that carry its API key (network scanner, scanner station page, till vendor).
  */
 function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; onClose: () => void }) {
   const [copied, setCopied] = useState<'scanner' | 'station' | 'key' | null>(null);
@@ -41,13 +41,14 @@ function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; on
   const scannerUrl = `${window.location.origin}/api/pos/v1/douchette/${key}`;
   const stationLink = `${window.location.origin}/douchette#cle=${key}`;
   return (
-    <Modal open title={`Douchette · ${created.terminal.name}`} onClose={onClose}>
-      <Alert tone="info">
-        Copiez ces adresses maintenant : elles ne seront plus affichées. En cas de perte, « Nouvelle clé » en donne de
-        nouvelles et les anciennes cessent aussitôt de fonctionner.
+    <Modal open title={`Caisse ajoutée · ${created.terminal.name}`} onClose={onClose}>
+      <Alert tone="success">
+        Imprimez maintenant son <strong>QR de caisse</strong> (bouton « QR de caisse » dans la liste) et collez-le sur le
+        comptoir : c&apos;est tout ce qu&apos;il faut pour que les clients utilisent leur avantage.
       </Alert>
+      <h3 className="mt-5 font-semibold">Optionnel : douchette ou logiciel de caisse</h3>
 
-      <h3 className="mt-5 font-semibold">Douchette réseau (Wi-Fi ou Ethernet) — recommandé</h3>
+      <h4 className="mt-3 font-semibold">Douchette réseau (Wi-Fi ou Ethernet)</h4>
       <p className="text-sm text-muted">
         Adresse d&apos;envoi à saisir une fois dans la douchette (réglage « HTTP » / « URL du serveur »). Chaque QR code lu
         est validé et le résultat s&apos;affiche sur le téléphone du client. La colonne « Dernier appel » confirme que la
@@ -63,6 +64,10 @@ function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; on
         <h4 className="mt-4 font-semibold">Clé d&apos;API (éditeur du logiciel de caisse)</h4>
         <Copyable label="Copier la clé" value={created.apiKey} testId="api-key" copied={copied === 'key'} onCopy={() => setCopied('key')} />
       </details>
+      <p className="mt-3 text-xs text-muted">
+        Ces adresses ne seront plus affichées. En cas de perte, « Nouvelle clé » en donne de nouvelles et les anciennes cessent
+        aussitôt de fonctionner.
+      </p>
 
       <div className="mt-6 flex justify-end">
         <Button onClick={onClose}>Fermer</Button>
@@ -97,11 +102,11 @@ function Terminals() {
 
   return (
     <section>
-      <h2 className="mb-1 font-display text-xl font-semibold">Caisses et douchettes</h2>
+      <h2 className="mb-1 font-display text-xl font-semibold">Caisses</h2>
       <p className="mb-4 text-sm text-muted">
-        Ajoutez une caisse pour obtenir l&apos;<strong>adresse de sa douchette</strong> : une douchette réseau (Wi-Fi ou
-        Ethernet) y envoie chaque QR code lu, sans téléphone ni PC à la caisse. Le client voit la validation sur son
-        téléphone. « Révoquer » coupe la douchette à tout moment.
+        Ajoutez une caisse, puis imprimez son <strong>QR de caisse</strong> et collez-le sur le comptoir : le client le
+        scanne avec l&apos;application et montre l&apos;écran « Remise validée » au caissier, sans téléphone ni douchette
+        à la caisse. « Nouveau QR » remplace une étiquette abîmée ou photographiée ; « Révoquer » désactive la caisse.
       </p>
       {(error || terminals.error) && <Alert>{error ?? terminals.error}</Alert>}
       <form onSubmit={create} className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -117,7 +122,23 @@ function Terminals() {
               <td className="px-4 py-3">{t.active ? <Badge tone="success">Active</Badge> : <Badge tone="danger">Révoquée</Badge>}</td>
               <td className="px-4 py-3 text-muted">{dateTime(t.lastUsedAt)}</td>
               <td className="px-4 py-3">
-                <div className="flex justify-end gap-1">
+                <div className="flex flex-wrap justify-end gap-1">
+                  <Link
+                    href={`/admin/etiquette?caisse=${t.id}`}
+                    className="rounded-xl bg-brand-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-800"
+                  >
+                    QR de caisse
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      confirm(`Nouveau QR code de caisse pour ${t.name} ? L'étiquette imprimée cessera de fonctionner : imprimez la nouvelle.`) &&
+                      run(() => api('admin', `/api/pos-terminals/${t.id}/counter-code`, { method: 'POST' }))
+                    }
+                  >
+                    Nouveau QR
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -356,8 +377,9 @@ export default function TillsPage() {
         <AssistedDiscountSettings />
         <div className="border-t border-line pt-8">
           <p className="mb-6 text-sm text-muted">
-            <strong>Caisse sans téléphone</strong> — une douchette réseau valide les QR codes et le client voit le résultat
-            sur son téléphone ; le caissier applique ensuite la remise standard.
+            <strong>Caisse sans téléphone</strong> — le client scanne le QR de caisse collé sur le comptoir et montre la
+            validation au caissier, qui applique la remise standard. Une douchette peut aussi être reliée (adresse donnée
+            à la création de la caisse).
           </p>
           <div className="space-y-10">
             <Terminals />

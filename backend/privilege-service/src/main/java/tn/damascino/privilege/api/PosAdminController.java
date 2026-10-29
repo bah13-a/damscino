@@ -54,6 +54,11 @@ public class PosAdminController {
         return commands.dispatch(new PosAdministration.RotateKey(SecuritySupport.currentUser(), id));
     }
 
+    @PostMapping("/api/pos-terminals/{id}/counter-code")
+    public PosAdministration.TerminalView renewCounterCode(@PathVariable UUID id) {
+        return commands.dispatch(new PosAdministration.RenewCounterCode(SecuritySupport.currentUser(), id));
+    }
+
     @PatchMapping("/api/pos-terminals/{id}/status")
     public PosAdministration.TerminalView status(@PathVariable UUID id, @RequestBody StatusRequest request) {
         return commands.dispatch(new PosAdministration.SetTerminalActive(SecuritySupport.currentUser(), id, request.active()));

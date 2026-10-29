@@ -15,7 +15,8 @@ public enum RefusalReason {
     NO_ELIGIBLE_ITEM("Aucun plat éligible sur ce ticket"),
     TICKET_ALREADY_DISCOUNTED("Une remise Damascino Privilèges est déjà appliquée sur ce ticket"),
     RESERVATION_NOT_FOUND("Réservation introuvable pour ce ticket"),
-    RESERVATION_EXPIRED("Réservation expirée : scannez à nouveau le QR code du client");
+    RESERVATION_EXPIRED("Réservation expirée : scannez à nouveau le QR code du client"),
+    COUNTER_UNKNOWN("QR code de caisse inconnu ou désactivé : demandez au caissier");
 
     private final String message;
 

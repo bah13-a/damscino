@@ -10,6 +10,7 @@ async function showQrCode(browser: Browser, b: Ready): Promise<{ client: Page; t
   const daily = client.waitForResponse((r) => r.url().endsWith('/api/privileges/qr/daily') && r.ok());
   await beneficiaryLogin(client, b.credentials.phone, b.password);
   await client.getByRole('button', { name: 'Utiliser mon avantage' }).click();
+  await client.getByRole('link', { name: 'Le caissier scanne mon QR code' }).click();
   const token: string = (await (await daily).json()).qrCode;
   await expect(client.getByTestId('qr-code').locator('svg')).toBeVisible({ timeout: 20_000 });
   await expect(client.getByTestId('scan-notice')).toHaveCount(0);

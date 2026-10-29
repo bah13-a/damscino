@@ -24,11 +24,11 @@ public final class PosAdministration {
     }
 
     public record TerminalView(UUID id, String name, String keyPrefix, boolean active, Instant createdAt,
-                               Instant lastUsedAt) {
+                               Instant lastUsedAt, String counterCode) {
 
         static TerminalView of(PosTerminal t) {
             return new TerminalView(t.getId(), t.getName(), t.getKeyPrefix(), t.isActive(), t.getCreatedAt(),
-                    t.getLastUsedAt());
+                    t.getLastUsedAt(), t.getCounterCode());
         }
     }
 
@@ -46,6 +46,9 @@ public final class PosAdministration {
     }
 
     public record RotateKey(AuthenticatedUser actor, UUID terminalId) implements Command<TerminalWithKey> {
+    }
+
+    public record RenewCounterCode(AuthenticatedUser actor, UUID terminalId) implements Command<TerminalView> {
     }
 
     public record SetTerminalActive(AuthenticatedUser actor, UUID terminalId, boolean active) implements Command<TerminalView> {
@@ -128,6 +131,24 @@ public final class PosAdministration {
             terminal.rotateKey(key.prefix(), key.hash());
             s.audit(command.actor(), "POS_KEY_ROTATED", "POS_TERMINAL", terminal.getId(), terminal.getName());
             return new TerminalWithKey(TerminalView.of(terminal), key.key());
+        }
+    }
+
+    @Component
+    static class RenewCounterCodeHandler implements CommandHandler<RenewCounterCode, TerminalView> {
+        private final Support s;
+
+        RenewCounterCodeHandler(Support s) {
+            this.s = s;
+        }
+
+        @Override
+        @Transactional
+        public TerminalView handle(RenewCounterCode command) {
+            PosTerminal terminal = s.terminal(command.terminalId());
+            terminal.renewCounterCode();
+            s.audit(command.actor(), "POS_COUNTER_CODE_RENEWED", "POS_TERMINAL", terminal.getId(), terminal.getName());
+            return TerminalView.of(terminal);
         }
     }
 

@@ -145,7 +145,7 @@ export interface UsageRow {
   dishPrice: number | null;
   discountPercent: number;
   discountAmount: number | null;
-  channel: 'SCANNER' | 'POS';
+  channel: 'SCANNER' | 'POS' | 'COUNTER';
   posTerminal: string | null;
   ticketId: string | null;
   dishLabel: string | null;
@@ -205,6 +205,7 @@ export interface PosTerminal {
   active: boolean;
   createdAt: string;
   lastUsedAt: string | null;
+  counterCode: string;
 }
 
 export interface PosTerminalWithKey {

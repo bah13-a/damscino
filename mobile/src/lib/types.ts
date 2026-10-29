@@ -86,3 +86,17 @@ export interface TillSettings {
   applyMode: ApplyMode;
   priceRequired: boolean;
 }
+
+/** Result of the scan of the QR code stuck on the counter (screen the customer shows to the cashier). */
+export interface CounterResult {
+  status: 'CONFIRMED' | 'REFUSED';
+  reason: string | null;
+  message: string;
+  tillName: string | null;
+  beneficiaryName: string | null;
+  partnerName: string | null;
+  discountName: string;
+  discountPercent: number | null;
+  validatedAt: string;
+  validationCode: string | null;
+}
