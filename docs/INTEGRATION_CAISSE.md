@@ -22,11 +22,30 @@ Deux modes, qui peuvent coexister :
 3. Créer un compte « Personnel scanner » par caissier (Administration → Comptes) et installer l'Espace personnel sur
    la tablette ou le téléphone de chaque caisse.
 
-### Caisse sans téléphone : douchette branchée sur la caisse
+### Caisse sans téléphone : poste douchette (aucun développement dans la caisse)
 
-Quand le caissier n'a pas de téléphone, une **douchette 2D** (lecteur de QR codes, USB) est branchée sur la caisse.
-Elle « tape » le contenu du QR code du client (texte commençant par `DP1.`) dans la caisse, comme un clavier. La
-caisse envoie ce texte à l'API et applique sa **remise standard** « Damascino Privilèges » si la réponse est
+La douchette (USB, mode clavier) est branchée sur le PC de caisse. Une page de Damascino Privilèges, ouverte dans le
+navigateur de ce PC, reçoit les scans :
+
+1. **Administration → Intégration caisse → Postes de caisse** : ajouter la caisse (ex. « Caisse 1 – Salle »). La
+   fenêtre affiche le **lien du poste douchette** (il contient la clé de la caisse, affiché une seule fois).
+2. Sur le PC de caisse, ouvrir ce lien **une fois** dans le navigateur (Chrome ou Edge), puis l'ajouter aux favoris ou
+   au démarrage : le poste reste configuré, l'adresse devient `https://<adresse du site>/douchette`. Aucune connexion
+   du caissier n'est demandée. Facultatif : saisir le nom du caissier sur la page.
+3. Au comptoir : le client présente son QR code sous la douchette. La page affiche en grand **« Avantage valide —
+   appliquer la remise « Damascino Privilèges » : 20 % sur un plat »** (avec un code à noter sur le ticket) ou
+   **« Refusé »** avec le motif, avec un son différent. Le client voit le même résultat sur son téléphone.
+4. Le caissier applique la remise standard dans MACAISSERES (rubrique Remise), comme pour le scan au téléphone.
+
+Pour retirer un poste (PC volé, remplacé) : **Révoquer** la caisse, ou **Nouvelle clé** pour obtenir un nouveau lien ;
+l'ancien lien cesse aussitôt de fonctionner. La page doit avoir le focus quand on scanne (elle le reprend seule
+chaque seconde ; si l'on travaille dans MACAISSERES, cliquer sur la fenêtre du poste avant de scanner, ou utiliser un
+second écran).
+
+### Caisse connectée par l'éditeur : douchette lue par la caisse elle-même
+
+Si l'éditeur de MACAISSERES l'accepte, la caisse peut lire elle-même la douchette : elle reçoit le contenu du QR code
+(texte commençant par `DP1.`) comme une saisie clavier, envoie ce texte à l'API et applique sa **remise standard** « Damascino Privilèges » si la réponse est
 `valid: true`. Un seul appel par scan : le passage est enregistré aussitôt (quota, statistiques, rapprochement) et le
 résultat s'affiche sur le téléphone du client.
 

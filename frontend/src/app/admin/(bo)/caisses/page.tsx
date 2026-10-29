@@ -8,16 +8,40 @@ import { categoryLabel, dateTime } from '@/lib/format';
 import type { ApplyMode, Category, PosProduct, PosTerminal, PosTerminalWithKey, TillSettings } from '@/lib/types';
 import { useApi } from '@/lib/useApi';
 
-/** Shows a freshly generated API key once. */
+/** Shows a freshly generated API key once, with the link of the handheld scanner station that carries it. */
 function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'key' | 'link' | null>(null);
   if (!created) return null;
+  const stationLink = `${window.location.origin}/douchette#cle=${encodeURIComponent(created.apiKey)}`;
   return (
     <Modal open title={`Clé d'API · ${created.terminal.name}`} onClose={onClose}>
       <Alert tone="info">
-        Copiez cette clé maintenant et transmettez-la à l&apos;éditeur de la caisse : elle ne sera plus affichée. En cas de
-        perte, régénérez-en une nouvelle (l&apos;ancienne cesse aussitôt de fonctionner).
+        Copiez-les maintenant : ils ne seront plus affichés. En cas de perte, régénérez une clé (l&apos;ancienne et son lien
+        cessent aussitôt de fonctionner).
       </Alert>
+      <h3 className="mt-4 font-semibold">Lien du poste douchette</h3>
+      <p className="text-sm text-muted">
+        À ouvrir <strong>une fois</strong> dans le navigateur du PC de caisse où la douchette est branchée : le poste reste
+        ensuite configuré, sans connexion du caissier.
+      </p>
+      <p className="mt-2 break-all rounded-xl bg-canvas p-3 font-mono text-xs" data-testid="station-link">
+        {stationLink}
+      </p>
+      <div className="mt-2 flex gap-2">
+        <Button
+          variant="secondary"
+          onClick={async () => {
+            await navigator.clipboard?.writeText(stationLink);
+            setCopied('link');
+          }}
+        >
+          {copied === 'link' ? 'Copié ✓' : 'Copier le lien'}
+        </Button>
+        <a href={stationLink} target="_blank" rel="noopener" className="inline-flex items-center rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
+          Ouvrir le poste sur ce PC
+        </a>
+      </div>
+      <h3 className="mt-6 font-semibold">Clé d&apos;API (éditeur de la caisse)</h3>
       <p className="mt-4 break-all rounded-xl bg-canvas p-3 font-mono text-sm" data-testid="api-key">
         {created.apiKey}
       </p>
@@ -26,10 +50,10 @@ function KeyModal({ created, onClose }: { created: PosTerminalWithKey | null; on
           variant="secondary"
           onClick={async () => {
             await navigator.clipboard?.writeText(created.apiKey);
-            setCopied(true);
+            setCopied('key');
           }}
         >
-          {copied ? 'Copiée ✓' : 'Copier la clé'}
+          {copied === 'key' ? 'Copiée ✓' : 'Copier la clé'}
         </Button>
         <Button onClick={onClose}>Fermer</Button>
       </div>
@@ -65,8 +89,9 @@ function Terminals() {
     <section>
       <h2 className="mb-1 font-display text-xl font-semibold">Postes de caisse</h2>
       <p className="mb-4 text-sm text-muted">
-        Chaque caisse connectée utilise sa propre clé d&apos;API (en-tête <code className="font-mono">X-Api-Key</code>) : elle
-        apparaît dans le journal des passages et peut être révoquée à tout moment.
+        Chaque caisse a sa propre clé d&apos;API, révocable à tout moment. À la création, un <strong>lien de poste
+        douchette</strong> est fourni : ouvert sur le PC de caisse, il transforme ce PC en poste de scan (douchette USB),
+        sans connexion du caissier. La clé sert aussi à l&apos;éditeur si la caisse appelle l&apos;API elle-même.
       </p>
       {(error || terminals.error) && <Alert>{error ?? terminals.error}</Alert>}
       <form onSubmit={create} className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -321,8 +346,8 @@ export default function TillsPage() {
         <AssistedDiscountSettings />
         <div className="border-t border-line pt-8">
           <p className="mb-6 text-sm text-muted">
-            <strong>Caisse connectée (optionnel)</strong> — si l&apos;éditeur de la caisse branche l&apos;API, la remise est
-            calculée et appliquée automatiquement, sans tablette.
+            <strong>Caisse sans téléphone</strong> — douchette branchée sur le PC de caisse (lien de poste douchette), ou
+            caisse connectée par l&apos;éditeur : la remise est validée sans tablette.
           </p>
           <div className="space-y-10">
             <Terminals />
