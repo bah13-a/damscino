@@ -11,7 +11,7 @@ COPY reporting-service/pom.xml reporting-service/
 COPY maven-settings.xml /root/.m2/settings.xml
 RUN mvn -q -B -pl reporting-service -am dependency:go-offline -DskipTests || true
 COPY . .
-RUN mvn -q -B -pl reporting-service -am package -DskipTests
+RUN mvn -q -B -Daether.connector.http.retryHandler.count=5 -pl reporting-service -am package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app

@@ -1,42 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Used by the Docker builds. Maven Central first (CDN close to the server); the aliyun mirror only as a second
+  repository, tried when an artifact cannot be fetched from Central. A mirror would replace Central entirely: an
+  unreachable mirror (handshake cut from AWS Europe) then fails the whole build.
+-->
 <settings>
-  <mirrors>
-    <mirror>
-      <id>aliyun</id>
-      <mirrorOf>central</mirrorOf>
-      <url>https://maven.aliyun.com/repository/public</url>
-    </mirror>
-  </mirrors>
   <profiles>
     <profile>
-      <id>aliyun</id>
+      <id>repositories</id>
       <repositories>
         <repository>
           <id>central</id>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+          <id>aliyun</id>
           <url>https://maven.aliyun.com/repository/public</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
         </repository>
       </repositories>
       <pluginRepositories>
         <pluginRepository>
           <id>central</id>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+        <pluginRepository>
+          <id>aliyun</id>
           <url>https://maven.aliyun.com/repository/public</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
         </pluginRepository>
       </pluginRepositories>
     </profile>
   </profiles>
   <activeProfiles>
-    <activeProfile>aliyun</activeProfile>
+    <activeProfile>repositories</activeProfile>
   </activeProfiles>
 </settings>
