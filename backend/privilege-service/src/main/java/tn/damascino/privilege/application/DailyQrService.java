@@ -1,11 +1,9 @@
 package tn.damascino.privilege.application;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tn.damascino.common.security.AuthenticatedUser;
 import tn.damascino.common.security.Secrets;
-import tn.damascino.common.web.ApiException;
 import tn.damascino.privilege.application.command.GenerateQrHandler;
 import tn.damascino.privilege.domain.DailyQr;
 import tn.damascino.privilege.domain.DailyQrRepository;
@@ -16,7 +14,6 @@ import tn.damascino.privilege.qr.QrTokenService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Component
 public class DailyQrService {
@@ -68,49 +65,5 @@ public class DailyQrService {
                 .filter(p -> p.sessionVersion() >= user.sessionVersion())
                 .filter(p -> !quota.isNonceUsed(p.nonce()))
                 .isPresent();
-    }
-
-    @Transactional
-    public void markAsUsed(UUID beneficiaryId, String qrCode) {
-        LocalDate today = LocalDate.now(clock);
-        DailyQr dailyQr = dailyQrRepository.findByBeneficiaryIdAndQrDate(beneficiaryId, today)
-                .orElse(null);
-
-        if (dailyQr == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "QR_NOT_FOUND", "Code QR non trouvé pour aujourd'hui");
-        }
-
-        if (!dailyQr.getQrCode().equals(qrCode)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_QR_CODE", "Code QR invalide");
-        }
-
-        if (dailyQr.isUsed()) {
-            throw new ApiException(HttpStatus.CONFLICT, "QR_ALREADY_USED", "Ce code QR a déjà été utilisé aujourd'hui");
-        }
-
-        dailyQr.markAsUsed(clock.instant());
-        dailyQrRepository.save(dailyQr);
-    }
-
-    @Transactional
-    public void validateAndMarkAsUsed(UUID beneficiaryId, String qrCode) {
-        LocalDate today = LocalDate.now(clock);
-        DailyQr dailyQr = dailyQrRepository.findByBeneficiaryIdAndQrDate(beneficiaryId, today)
-                .orElse(null);
-
-        if (dailyQr == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "QR_NOT_FOUND", "Code QR non trouvé pour aujourd'hui");
-        }
-
-        if (!dailyQr.getQrCode().equals(qrCode)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_QR_CODE", "Code QR invalide");
-        }
-
-        if (dailyQr.isUsed()) {
-            throw new ApiException(HttpStatus.CONFLICT, "QR_ALREADY_USED", "Ce code QR a déjà été utilisé aujourd'hui");
-        }
-
-        dailyQr.markAsUsed(clock.instant());
-        dailyQrRepository.save(dailyQr);
     }
 }

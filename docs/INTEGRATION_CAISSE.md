@@ -22,29 +22,49 @@ Deux modes, qui peuvent coexister :
 3. Créer un compte « Personnel scanner » par caissier (Administration → Comptes) et installer l'Espace personnel sur
    la tablette ou le téléphone de chaque caisse.
 
-### Alternative : validation du QR par API (sans tableau)
+### Caisse sans téléphone : douchette branchée sur la caisse
 
-Si votre système till peut appeler une API HTTP, vous pouvez automatiser la validation du QR code sans tablette :
+Quand le caissier n'a pas de téléphone, une **douchette 2D** (lecteur de QR codes, USB) est branchée sur la caisse.
+Elle « tape » le contenu du QR code du client (texte commençant par `DP1.`) dans la caisse, comme un clavier. La
+caisse envoie ce texte à l'API et applique sa **remise standard** « Damascino Privilèges » si la réponse est
+`valid: true`. Un seul appel par scan : le passage est enregistré aussitôt (quota, statistiques, rapprochement) et le
+résultat s'affiche sur le téléphone du client.
+
+**Développement côté caisse (éditeur)** : à la lecture d'un texte commençant par `DP1.`, appeler :
 
 ```bash
-curl -X POST https://damascino-privileges.onrender.com/api/pos/v1/validate-qr \
+curl -X POST https://<adresse du site>/api/pos/v1/validate-qr \
+  -H "X-Api-Key: <clé de la caisse>" \
   -H "Content-Type: application/json" \
-  -d '{
-    "qrCode": "DP1.eyJiIjoiNTIz..."
-  }'
+  -d '{ "qrCode": "DP1.eyJiIjoiNTIz...", "cashier": "Sami", "ticketId": "T-000123" }'
 ```
 
-Réponse en cas de succès :
+- `X-Api-Key` : clé créée dans Administration → Caisses (une par caisse) ;
+- `cashier` et `ticketId` : facultatifs (nom du caissier, numéro du ticket pour le rapprochement).
+
+Réponse (toujours HTTP 200 quand la clé est valide) :
+
 ```json
 {
   "valid": true,
+  "reason": null,
+  "message": "Avantage valide : appliquer la remise « Damascino Privilèges »",
   "discountName": "Damascino Privilèges",
   "discountPercent": 20,
-  "clientName": "Ahmed Khalil"
+  "clientName": "Ahmed Khalil",
+  "partnerName": "Société X",
+  "redemptionId": "6f1c…",
+  "validationCode": "428249"
 }
 ```
 
-Le caissier peut alors appliquer directement la remise dans la caisse sans saisie manuelle du pourcentage.
+| `valid` | Ce que fait la caisse |
+|---|---|
+| `true` | Appliquer la remise `discountName` (`discountPercent` % sur un plat éligible) ; noter `validationCode` dans le commentaire du ticket si possible |
+| `false` | Ne pas appliquer de remise ; afficher `message` au caissier. `reason` : `INVALID_QR` (mauvaise lecture ou faux code), `QR_EXPIRED`, `QR_ALREADY_USED`, `SESSION_REPLACED`, `QUOTA_REACHED`, `CONVENTION_EXPIRED`, `BENEFICIARY_INACTIVE`… |
+
+Le même code ne peut être validé qu'une fois. Réglage de la douchette : clavier dans la même langue que le PC de
+caisse (sinon les chiffres sont mal transcrits et la réponse est `INVALID_QR`), suffixe Entrée.
 
 ### Au quotidien, en caisse
 
