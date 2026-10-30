@@ -17,7 +17,17 @@ export class ApiError extends Error {
     public fields: Record<string, string> = {},
   ) {
     super(message);
+    // a transpiled subclass of Error loses its prototype on some engines: `instanceof ApiError` would then be false
+    // and the server's message replaced by a generic one
+    Object.setPrototypeOf(this, ApiError.prototype);
+    this.name = 'ApiError';
   }
+}
+
+function isApiError(error: unknown): error is ApiError {
+  if (error instanceof ApiError) return true;
+  const e = error as Partial<ApiError> | null;
+  return !!e && typeof e === 'object' && typeof e.code === 'string' && typeof e.status === 'number' && typeof e.message === 'string';
 }
 
 /** Why the session ended, shown on the login screen. */
@@ -158,9 +168,10 @@ export async function logout() {
 }
 
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof TypeError) {
+  if (isApiError(error)) return error.message;
+  // fetch rejects with a TypeError ("Network request failed") when the server cannot be reached
+  if (error instanceof TypeError || (error instanceof Error && /network request failed|failed to fetch/i.test(error.message))) {
     return `Connexion impossible au serveur ${server() || '(adresse non configurée)'}. Vérifiez votre connexion internet et l'adresse du serveur (avec un Codespace : démarré, port 3000 en Public).`;
   }
-  return 'Une erreur est survenue.';
+  return error instanceof Error && error.message ? `Une erreur est survenue : ${error.message}` : 'Une erreur est survenue.';
 }
