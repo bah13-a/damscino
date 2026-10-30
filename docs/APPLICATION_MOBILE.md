@@ -89,6 +89,26 @@ base64 -w0 damascino.keystore   # → secret ANDROID_KEYSTORE_BASE64
 Secrets GitHub : `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 **Conservez la clé précieusement** : toutes les mises à jour doivent être signées avec la même.
 
+## Obtenir l'APK sans GitHub Actions (EAS Build, gratuit)
+
+Quand GitHub Actions n'est pas disponible (facturation, quota), le serveur fait compiler l'application par EAS Build
+(service d'Expo, plan gratuit) pour **sa propre adresse** et la met à disposition au même endroit
+(`/downloads/damascino-privileges.apk`, QR code de la page d'accueil) :
+
+```bash
+cd /opt/damascino && sudo bash infra/build-apk.sh
+```
+
+- Prérequis : un compte Expo gratuit et un **jeton d'accès** (expo.dev → Account settings → Access tokens), demandé à
+  la première exécution puis conservé dans `.env` (`EXPO_TOKEN`).
+- Première compilation : répondre « Yes » quand EAS propose de générer la clé de signature Android ; Expo la conserve
+  et la réutilise, les APK suivantes s'installent en mise à jour. Les téléphones qui ont une APK signée par une autre
+  clé (GitHub Actions) doivent désinstaller l'ancienne application d'abord.
+- L'adresse du serveur est intégrée à l'APK : associer une **Elastic IP** avant de compiler, sinon l'application
+  cesse de fonctionner au prochain changement d'adresse.
+- La compilation se fait chez Expo (de quelques minutes à plus d'une heure selon la file d'attente du plan gratuit).
+- Une APK compilée ailleurs s'installe avec les mêmes contrôles : `sudo bash infra/download-apk.sh url <adresse>`.
+
 ## Publier sur Google Play et l'App Store
 
 Le plus simple est **EAS Build** (service d'Expo, offre gratuite limitée) avec les profils de `mobile/eas.json` :

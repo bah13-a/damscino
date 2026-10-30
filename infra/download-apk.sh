@@ -14,12 +14,47 @@ cd "$(dirname "$0")/.."
 case "${1:-prod}" in
   prod) TAG=android-prod; FILE=damascino-privileges.apk ;;
   test) TAG=android-test; FILE=damascino-privileges-test.apk ;;
-  *) echo "Usage: $0 [prod|test]" >&2; exit 2 ;;
+  # APK built elsewhere (EAS Build, infra/build-apk.sh): same checks, no GitHub release
+  url) TAG=""; FILE=damascino-privileges.apk; SOURCE_URL="${2:-}"; [ -n "$SOURCE_URL" ] || { echo "Usage: $0 url <adresse https de l APK>" >&2; exit 2; } ;;
+  *) echo "Usage: $0 [prod|test|url <adresse>]" >&2; exit 2 ;;
 esac
 REPO="${GITHUB_REPO:-bah13-a/damscino}"
 API="https://api.github.com/repos/$REPO"
 
 fail() { echo "❌ $*" >&2; exit 1; }
+
+# checks an APK downloaded in $1 (ZIP with manifest, code and resources, signed) before it replaces the one in place
+check_apk() {
+  python3 - "$1" <<'PY' || fail "Le fichier téléchargé n'est pas une APK Android valide (le fichier en place est conservé)."
+import sys, zipfile
+names = set(zipfile.ZipFile(sys.argv[1]).namelist())
+missing = {"AndroidManifest.xml", "classes.dex", "resources.arsc"} - names
+if missing:
+    sys.exit("APK incomplète, manque : " + ", ".join(sorted(missing)))
+# Android refuses an unsigned APK: v2/v3 signing block, or v1 signature files in META-INF/
+with open(sys.argv[1], "rb") as f:
+    f.seek(0, 2); f.seek(max(0, f.tell() - 64 * 1024 * 1024))
+    signed_v2 = b"APK Sig Block 42" in f.read()
+if not signed_v2 and not any(n.startswith("META-INF/") and n.endswith((".RSA", ".EC", ".DSA")) for n in names):
+    sys.exit("APK non signée : Android refuserait de l'installer")
+PY
+}
+
+if [ -z "$TAG" ]; then
+  mkdir -p app-downloads
+  TMP="$(mktemp app-downloads/.download.XXXXXX)"
+  trap 'rm -f "$TMP"' EXIT
+  echo "⬇ $FILE ($SOURCE_URL)"
+  curl -fsSL --retry 3 --connect-timeout 20 -o "$TMP" "$SOURCE_URL" || fail "Téléchargement de $FILE impossible."
+  SIZE="$(stat -c %s "$TMP")"
+  [ "$SIZE" -gt 1048576 ] || fail "Fichier trop petit ($SIZE octets) : ce n'est pas l'application."
+  check_apk "$TMP"
+  chmod 644 "$TMP"
+  mv -f "$TMP" "app-downloads/$FILE"
+  trap - EXIT
+  echo "✅ $FILE installé ($((SIZE / 1048576)) Mo) → /downloads/$FILE"
+  exit 0
+fi
 
 TOKEN="${GITHUB_TOKEN:-}"
 [ -z "$TOKEN" ] && [ -f .env ] && TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' .env | tail -n1)"
@@ -70,20 +105,7 @@ GOT="$(stat -c %s "$TMP")"
 if [ "$DIGEST" != "-" ]; then
   echo "$DIGEST  $TMP" | sha256sum -c --quiet - || fail "Empreinte SHA-256 différente de la release (le fichier en place est conservé)."
 fi
-python3 - "$TMP" <<'PY' || fail "Le fichier téléchargé n'est pas une APK Android valide (le fichier en place est conservé)."
-import sys, zipfile
-names = set(zipfile.ZipFile(sys.argv[1]).namelist())
-missing = {"AndroidManifest.xml", "classes.dex", "resources.arsc"} - names
-if missing:
-    sys.exit("APK incomplète, manque : " + ", ".join(sorted(missing)))
-# Android refuses an unsigned APK: v2/v3 signing block, or v1 signature files in META-INF/
-with open(sys.argv[1], "rb") as f:
-    f.seek(0, 2); f.seek(max(0, f.tell() - 64 * 1024 * 1024))
-    signed_v2 = b"APK Sig Block 42" in f.read()
-if not signed_v2 and not any(n.startswith("META-INF/") and n.endswith((".RSA", ".EC", ".DSA")) for n in names):
-    sys.exit("APK non signée : Android refuserait de l'installer")
-PY
-
+check_apk "$TMP"
 chmod 644 "$TMP"
 mv -f "$TMP" "app-downloads/$FILE"
 trap - EXIT

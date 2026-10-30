@@ -1,4 +1,4 @@
-import type { ExpoConfig } from 'expo/config';
+import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 const NAVY = '#131F35';
 /** test = app "Privilèges TEST" installable next to the production app, pointing to the test server. */
@@ -9,7 +9,7 @@ const PACKAGE = TEST ? 'tn.damascino.privileges.test' : 'tn.damascino.privileges
  * Damascino Privilèges: the beneficiary and staff app. The API address is fixed at build time
  * (EXPO_PUBLIC_API_URL); test builds may let the user change it (EXPO_PUBLIC_ALLOW_SERVER_CHANGE=1).
  */
-const config: ExpoConfig = {
+const app: ExpoConfig = {
   name: TEST ? 'Privilèges TEST' : 'Damascino Privilèges',
   slug: 'damascino-privileges',
   scheme: TEST ? 'damascino-test' : 'damascino',
@@ -46,7 +46,7 @@ const config: ExpoConfig = {
     [
       'expo-camera',
       {
-        cameraPermission: 'La caméra sert à scanner le QR code des bénéficiaires en caisse.',
+        cameraPermission: 'La caméra sert à scanner les QR codes Damascino Privilèges (étiquette de la caisse, QR code des clients).',
         microphonePermission: false,
         recordAudioAndroid: false,
         barcodeScannerEnabled: true,
@@ -60,4 +60,12 @@ const config: ExpoConfig = {
   experiments: { typedRoutes: false },
 };
 
-export default config;
+/**
+ * app.json only carries what EAS Build writes itself (extra.eas.projectId, owner) when the app is linked to an Expo
+ * project by infra/build-apk.sh: it is merged here.
+ */
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...app,
+  ...(config.owner ? { owner: config.owner } : {}),
+  extra: { ...config.extra },
+});

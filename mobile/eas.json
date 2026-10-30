@@ -24,6 +24,18 @@
         "EXPO_PUBLIC_APP_ENV": "prod",
         "EXPO_PUBLIC_ALLOW_SERVER_CHANGE": "0"
       }
+    },
+    "apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "prod",
+        "EXPO_PUBLIC_APP_ENV": "prod",
+        "EXPO_PUBLIC_ALLOW_SERVER_CHANGE": "0",
+        "EXPO_PUBLIC_API_URL": "set-by-infra/build-apk.sh"
+      }
     }
   },
   "submit": {
