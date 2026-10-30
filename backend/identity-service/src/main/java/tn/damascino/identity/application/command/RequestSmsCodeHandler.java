@@ -112,8 +112,14 @@ public class RequestSmsCodeHandler implements CommandHandler<RequestSmsCodeComma
                 sender.send("+216" + phone, "Damascino Privileges : votre code est " + code + ". Valable "
                         + ttl.toMinutes() + " min. Ne le communiquez a personne.");
             } catch (ApiException e) {
-                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SMS_UNAVAILABLE",
-                        "L'envoi du code a échoué. Réessayez dans quelques minutes.");
+                // the e-mail is the main channel: say what is missing rather than a generic failure
+                log.warn("Code non envoyé pour {} : {} ; SMS de secours : {}", mask(phone),
+                        email == null ? "aucune adresse e-mail sur le compte" : "e-mail en échec", e.getMessage());
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "SMS_UNAVAILABLE", email == null
+                        ? "Aucune adresse e-mail n'est enregistrée pour ce numéro : demandez à votre service RH de "
+                        + "l'ajouter sur la liste des bénéficiaires, puis réessayez."
+                        : "L'envoi du code par e-mail a échoué. Réessayez dans quelques minutes ; si le problème "
+                        + "persiste, contactez Damascino.");
             }
         }
 

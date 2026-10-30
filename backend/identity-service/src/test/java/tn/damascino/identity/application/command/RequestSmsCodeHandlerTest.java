@@ -93,9 +93,10 @@ class RequestSmsCodeHandlerTest {
 
         assertThatThrownBy(() -> handler(sender, 10, "amira@exemple.tn")
                 .handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")))
-                .isInstanceOf(ApiException.class).hasMessageContaining("envoi du code a échoué");
+                .isInstanceOf(ApiException.class).hasMessageContaining("envoi du code par e-mail a échoué");
+        // without an e-mail on the account, the beneficiary is told what is missing
         assertThatThrownBy(() -> handler(sender, 10, null).handle(new RequestSmsCodeCommand("98123456", null, "1.1.1.1")))
-                .isInstanceOf(ApiException.class);
+                .isInstanceOf(ApiException.class).hasMessageContaining("Aucune adresse e-mail n'est enregistrée");
     }
 
     @Test
