@@ -49,7 +49,8 @@ if [ -z "$EXPO_TOKEN" ]; then
 fi
 EAS_PROJECT_ID="$(current EAS_PROJECT_ID)"
 
-# working copy: the server address goes into the "apk" profile, and the repository files stay untouched
+# working copy: the address of this server replaces the one of the "apk" profile (the production server,
+# https://51-20-252-36.sslip.io), and the repository files stay untouched
 WORK="$(mktemp -d /tmp/damascino-eas.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
 tar -C mobile --exclude=node_modules --exclude=dist --exclude=.expo -cf - . | tar -C "$WORK" -xf -

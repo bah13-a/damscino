@@ -7,7 +7,7 @@ name: Application mobile (APK Android)
 # app only by hand: Actions → Application mobile (APK Android) → Run workflow → environnement « prod ».
 #
 # Settings → Environments → test / prod → Environment variables and secrets (created at the first run):
-#   variable APP_API_URL           address of the site of that environment (required for prod), e.g.
+#   variable APP_API_URL           address of the site of that environment (prod: DEFAULT_PROD_API_URL below if unset), e.g.
 #                                  https://privileges.damascino.tn
 #   variable APP_ALLOW_SERVER_CHANGE  1 = the address can also be changed in the app (never for prod)
 #   secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
@@ -37,9 +37,11 @@ concurrency:
   group: mobile-apk-${{ inputs.environment || 'test' }}-${{ github.ref }}
   cancel-in-progress: true
 
-# address of the test server when the test environment has no APP_API_URL variable (current Codespace)
+# address of the test server when the test environment has no APP_API_URL variable (current Codespace), and of the
+# production server when the prod environment has none
 env:
   DEFAULT_TEST_API_URL: https://musical-goggles-7wqpvxv5jgq3pvqg-3000.app.github.dev
+  DEFAULT_PROD_API_URL: https://51-20-252-36.sslip.io
 
 jobs:
   android:
@@ -63,7 +65,7 @@ jobs:
           VAR_ALLOW: ${{ vars.APP_ALLOW_SERVER_CHANGE }}
         run: |
           URL="${INPUT_URL:-$VAR_URL}"
-          if [ "$APP_ENV" = "test" ]; then URL="${URL:-$DEFAULT_TEST_API_URL}"; ALLOW="${VAR_ALLOW:-0}"; else ALLOW=0; fi
+          if [ "$APP_ENV" = "test" ]; then URL="${URL:-$DEFAULT_TEST_API_URL}"; ALLOW="${VAR_ALLOW:-0}"; else URL="${URL:-$DEFAULT_PROD_API_URL}"; ALLOW=0; fi
           if [ -z "$URL" ]; then
             echo "::error::Définissez la variable APP_API_URL de l'environnement $APP_ENV (Settings → Environments → $APP_ENV)."
             exit 1

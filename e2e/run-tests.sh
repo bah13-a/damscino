@@ -19,7 +19,7 @@ echo -e "${BLUE}╚════════════════════�
 echo ""
 
 # Get base URL from argument or environment
-BASE_URL="${1:-https://16-171-199-82.sslip.io}"
+BASE_URL="${1:-https://51-20-252-36.sslip.io}"
 
 echo -e "${YELLOW}URL du serveur de test:${NC} $BASE_URL"
 echo ""
