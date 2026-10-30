@@ -14,8 +14,8 @@ cd "$(dirname "$0")/.."
 case "${1:-prod}" in
   prod) TAG=android-prod; FILE=damascino-privileges.apk ;;
   test) TAG=android-test; FILE=damascino-privileges-test.apk ;;
-  # APK built elsewhere (EAS Build, infra/build-apk.sh): same checks, no GitHub release
-  url) TAG=""; FILE=damascino-privileges.apk; SOURCE_URL="${2:-}"; [ -n "$SOURCE_URL" ] || { echo "Usage: $0 url <adresse https de l APK>" >&2; exit 2; } ;;
+  # APK compiled elsewhere (address or local file, e.g. by infra/build-apk.sh): same checks, no GitHub release
+  url) TAG=""; FILE=damascino-privileges.apk; SOURCE_URL="${2:-}"; [ -n "$SOURCE_URL" ] || { echo "Usage: $0 url <adresse https ou fichier de l APK>" >&2; exit 2; } ;;
   *) echo "Usage: $0 [prod|test|url <adresse>]" >&2; exit 2 ;;
 esac
 REPO="${GITHUB_REPO:-bah13-a/damscino}"
@@ -45,7 +45,11 @@ if [ -z "$TAG" ]; then
   TMP="$(mktemp app-downloads/.download.XXXXXX)"
   trap 'rm -f "$TMP"' EXIT
   echo "⬇ $FILE ($SOURCE_URL)"
-  curl -fsSL --retry 3 --connect-timeout 20 -o "$TMP" "$SOURCE_URL" || fail "Téléchargement de $FILE impossible."
+  if [ -f "$SOURCE_URL" ]; then
+    cp "$SOURCE_URL" "$TMP"   # APK compiled on this server (infra/build-apk.sh)
+  else
+    curl -fsSL --retry 3 --connect-timeout 20 -o "$TMP" "$SOURCE_URL" || fail "Téléchargement de $FILE impossible."
+  fi
   SIZE="$(stat -c %s "$TMP")"
   [ "$SIZE" -gt 1048576 ] || fail "Fichier trop petit ($SIZE octets) : ce n'est pas l'application."
   check_apk "$TMP"

@@ -1,93 +1,86 @@
 #!/usr/bin/env bash
-# Builds the Android app for THIS server with Expo's EAS Build (free plan), then installs it in app-downloads/ where
-# the QR code of the site points. Use it when GitHub Actions is not available.
+# Compiles the Android app ON THIS SERVER (Docker, no GitHub Actions, no Expo account), for this server's address,
+# and puts it in app-downloads/ where the QR code of the site points.
 #
 #   cd /opt/damascino && sudo bash infra/build-apk.sh
 #
-# Needs a free Expo account and an access token (expo.dev → Account settings → Access tokens → Create token): asked
-# on screen the first time, then kept in .env (EXPO_TOKEN). The app is linked to an Expo project on the first run
-# (EAS_PROJECT_ID, kept in .env). Answer « Yes » when EAS offers to generate the Android signing key: it is kept by
-# Expo and reused for every later build, so the next APKs install as updates.
-# The compilation runs on Expo's servers (from a few minutes to more than an hour on the free plan, depending on the
-# queue); this server only uploads the project and downloads the result.
+# An Android build needs memory: 8 GB (RAM + swap) at least, 16 GB RAM to be fast. On a small instance, enlarge it
+# for the time of the build (EC2 → Stop → Change instance type, e.g. t3.xlarge → Start, then back), with an Elastic
+# IP so that the address stays the same. First build: 30 to 60 minutes (downloads of the Android SDK and NDK, kept for
+# the next builds); then 10 to 20 minutes.
+# Signing: the APK is signed with the debug key of the Expo template, like the previous APKs built without a key, so
+# it installs as an update of them. With a key of your own, put it in /opt/damascino/android-signing/ (release.keystore
+# and signing.properties: storePassword=…, keyAlias=…, keyPassword=…).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-die() { printf '\033[1;31m❌ %s\033[0m\n' "$*" >&2; exit 1; }
-ok()  { printf '\033[1;32m✅ %s\033[0m\n' "$*"; }
+die()  { printf '\033[1;31m❌ %s\033[0m\n' "$*" >&2; exit 1; }
+warn() { printf '\033[1;33m⚠ %s\033[0m\n' "$*"; }
+ok()   { printf '\033[1;32m✅ %s\033[0m\n' "$*"; }
 [ "$(id -u)" -eq 0 ] || die "Lancez ce script avec sudo."
 [ -f .env ] || die ".env absent : installez d'abord le serveur avec infra/vps/deploy.sh."
-[ -t 0 ] || die "Lancez ce script dans un terminal (EAS pose une question lors de la première compilation)."
 command -v docker >/dev/null 2>&1 || die "Docker absent : installez d'abord le serveur avec infra/vps/deploy.sh."
 
-setenv() {
-  if grep -q "^$1=" .env; then
-    local tmp; tmp="$(mktemp)"
-    awk -v k="$1" -v v="$2" 'BEGIN { FS = OFS = "=" } $1 == k { print k "=" v; next } { print }' .env > "$tmp"
-    cat "$tmp" > .env && rm -f "$tmp"
-  else
-    printf '%s=%s\n' "$1" "$2" >> .env
-  fi
-  chmod 600 .env
-}
-current() { sed -n "s/^$1=//p" .env | tail -n1; }
-
-DOMAIN="$(current DOMAIN)"
+DOMAIN="$(sed -n 's/^DOMAIN=//p' .env | tail -n1)"
 [ -n "$DOMAIN" ] || die "DOMAIN absent de .env : relancez infra/vps/deploy.sh."
 API_URL="https://$DOMAIN"
 case "$DOMAIN" in
-  *.sslip.io) echo "⚠ L'application sera liée à $API_URL. Sans Elastic IP, cette adresse change au prochain arrêt/démarrage" \
-                   "de l'instance et l'application ne fonctionnerait plus : associez d'abord une Elastic IP." ;;
+  *.sslip.io) warn "L'application sera liée à $API_URL : sans Elastic IP, cette adresse change au prochain arrêt de l'instance." ;;
 esac
 
-EXPO_TOKEN="${EXPO_TOKEN:-$(current EXPO_TOKEN)}"
-if [ -z "$EXPO_TOKEN" ]; then
-  echo "Jeton Expo : expo.dev → Account settings → Access tokens → Create token (compte Expo gratuit)."
-  read -r -s -p "Collez le jeton (il n'est pas affiché) : " EXPO_TOKEN; echo
-  [ -n "$EXPO_TOKEN" ] || die "Jeton Expo obligatoire."
-  setenv EXPO_TOKEN "$EXPO_TOKEN"
+RAM_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)"
+SWAP_MB="$(awk '/SwapTotal/ {print int($2/1024)}' /proc/meminfo)"
+echo "Mémoire : RAM ${RAM_MB} Mo, swap ${SWAP_MB} Mo"
+if [ $((RAM_MB + SWAP_MB)) -lt 7500 ]; then
+  die "Pas assez de mémoire pour compiler une application Android (8 Go RAM+swap minimum). Agrandissez l'instance le temps de la compilation (ex. t3.xlarge), ou ajoutez du swap : sudo fallocate -l 8G /swapfile2 && sudo chmod 600 /swapfile2 && sudo mkswap /swapfile2 && sudo swapon /swapfile2"
 fi
-EAS_PROJECT_ID="$(current EAS_PROJECT_ID)"
+if [ "$RAM_MB" -ge 12000 ]; then HEAP=4g; WORKERS=4; elif [ "$RAM_MB" -ge 6000 ]; then HEAP=3g; WORKERS=2; else HEAP=2g; WORKERS=1; fi
+[ "$RAM_MB" -ge 6000 ] || warn "Peu de RAM (${RAM_MB} Mo) : la compilation passera par le swap et peut prendre plusieurs heures."
 
-# working copy: the address of this server replaces the one of the "apk" profile (the production server,
-# https://51-20-252-36.sslip.io), and the repository files stay untouched
-WORK="$(mktemp -d /tmp/damascino-eas.XXXXXX)"
-trap 'rm -rf "$WORK"' EXIT
-tar -C mobile --exclude=node_modules --exclude=dist --exclude=.expo -cf - . | tar -C "$WORK" -xf -
-python3 - "$WORK/eas.json" "$API_URL" <<'PY'
-import json, sys
-path, url = sys.argv[1], sys.argv[2]
-config = json.load(open(path))
-config["build"]["apk"]["env"]["EXPO_PUBLIC_API_URL"] = url
-json.dump(config, open(path, "w"), indent=2)
-PY
+CACHE=/var/cache/damascino-apk
+SRC="$CACHE/src"
+mkdir -p "$SRC"
+# fresh copy of the app (dependencies and Gradle caches are kept in Docker volumes between builds)
+find "$SRC" -mindepth 1 -maxdepth 1 ! -name node_modules -exec rm -rf {} +
+tar -C mobile --exclude=node_modules --exclude=dist --exclude=.expo --exclude=android --exclude=ios -cf - . | tar -C "$SRC" -xf -
+SIGNING=()
+if [ -f android-signing/release.keystore ] && [ -f android-signing/signing.properties ]; then
+  SIGNING=(-v "$PWD/android-signing:/signing:ro" -v "$PWD/.github/scripts:/scripts:ro")
+  echo "Signature avec la clé de android-signing/"
+fi
 
-echo "▶ Compilation de l'application pour $API_URL sur EAS Build ($(date +%H:%M))…"
-docker run --rm -it -e EXPO_TOKEN -e EAS_PROJECT_ID="$EAS_PROJECT_ID" -e EAS_NO_VCS=1 -e EXPO_NO_TELEMETRY=1 \
-  -v "$WORK":/app -w /app node:22 bash -euo pipefail -c '
+echo "▶ Environnement de compilation Android ($(date +%H:%M))"
+docker build -q -t damascino-android-builder:1 infra/android-builder >/dev/null || die "Image de compilation impossible à construire."
+
+echo "▶ Compilation de l'application pour $API_URL ($(date +%H:%M)) — journal : $CACHE/build.log"
+docker run --rm \
+  -e APP_ENV=prod -e EXPO_PUBLIC_APP_ENV=prod -e EXPO_PUBLIC_API_URL="$API_URL" -e EXPO_PUBLIC_ALLOW_SERVER_CHANGE=0 \
+  -e EXPO_NO_TELEMETRY=1 -e CI=1 -e HEAP="$HEAP" -e WORKERS="$WORKERS" \
+  -v "$SRC":/app -v damascino-android-sdk:/opt/android-sdk -v damascino-gradle:/root/.gradle -v damascino-npm:/root/.npm \
+  "${SIGNING[@]}" damascino-android-builder:1 bash -euo pipefail -c '
     npm ci --no-audit --no-fund --loglevel=error
-    EAS="npx --yes eas-cli@latest"
-    if [ -n "$EAS_PROJECT_ID" ]; then
-      $EAS init --id "$EAS_PROJECT_ID" --force --non-interactive
-    else
-      $EAS init --force --non-interactive
+    npx expo prebuild --platform android --no-install --clean
+    cat >> android/gradle.properties <<PROPS
+org.gradle.jvmargs=-Xmx$HEAP -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
+org.gradle.workers.max=$WORKERS
+org.gradle.parallel=false
+kotlin.daemon.jvmargs=-Xmx1g
+PROPS
+    if [ -f /signing/release.keystore ]; then
+      cp /signing/release.keystore android/app/release.keystore
+      sed -n "s/^storePassword=/DP_UPLOAD_STORE_PASSWORD=/p; s/^keyAlias=/DP_UPLOAD_KEY_ALIAS=/p; s/^keyPassword=/DP_UPLOAD_KEY_PASSWORD=/p" \
+        /signing/signing.properties >> android/gradle.properties
+      echo "DP_UPLOAD_STORE_FILE=release.keystore" >> android/gradle.properties
+      node /scripts/android-release-signing.mjs android/app/build.gradle
     fi
-    $EAS build --platform android --profile apk --wait
-    $EAS build:list --platform android --status finished --limit 1 --json --non-interactive > /app/.last-build.json
-  ' || die "Compilation EAS impossible : voir les messages ci-dessus (jeton Expo, quota du plan gratuit…)."
+    cd android
+    ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+    # an unsigned or truncated APK is refused by Android: never publish one
+    BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)"
+    "$BT/apksigner" verify app/build/outputs/apk/release/app-release.apk
+  ' >"$CACHE/build.log" 2>&1 || { tail -n 40 "$CACHE/build.log"; die "Compilation impossible (journal complet : $CACHE/build.log)."; }
 
-PROJECT_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["expo"]["extra"]["eas"]["projectId"])' "$WORK/app.json" 2>/dev/null || true)"
-[ -n "$PROJECT_ID" ] && setenv EAS_PROJECT_ID "$PROJECT_ID"
-APK_URL="$(python3 - "$WORK/.last-build.json" <<'PY'
-import json, sys
-builds = json.load(open(sys.argv[1]))
-artifacts = (builds[0] if builds else {}).get("artifacts") or {}
-print(artifacts.get("applicationArchiveUrl") or artifacts.get("buildUrl") or "")
-PY
-)"
-[ -n "$APK_URL" ] || die "Compilation terminée mais adresse de l'APK introuvable : téléchargez-la sur expo.dev puis « sudo bash infra/download-apk.sh url <adresse> »."
-
-bash infra/download-apk.sh url "$APK_URL"
-ok "Application disponible : $API_URL/downloads/damascino-privileges.apk (QR code de la page d'accueil)"
-echo "Sur un téléphone où l'ancienne application est installée : désinstallez-la d'abord si Android refuse la mise à jour" \
-     "(clé de signature différente), puis installez la nouvelle."
+APK="$SRC/android/app/build/outputs/apk/release/app-release.apk"
+[ -f "$APK" ] || die "APK introuvable après la compilation (journal : $CACHE/build.log)."
+bash infra/download-apk.sh url "$APK"
+ok "Application compilée ($(date +%H:%M)) : $API_URL/downloads/damascino-privileges.apk (QR code de la page d'accueil)"
