@@ -147,16 +147,31 @@ COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
 # images built by GitHub Actions (private: the token needs read access to the packages, which the token of an
 # Actions run has; a personal token needs the read:packages scope). Otherwise compiled here (15 to 30 minutes).
 UP=(up -d --remove-orphans --no-build)
+# One image at a time: five Maven builds in parallel on a 1 GB server swap constantly (hours instead of minutes).
+# The Maven and npm downloads are kept in a BuildKit cache shared by all images and later deployments.
+build_images() {
+  local svc n=0 total=6
+  for svc in identity-service partner-service privilege-service reporting-service gateway frontend; do
+    n=$((n + 1))
+    echo "── Compilation $n/$total : $svc ($(date +%H:%M)) ──"
+    "${COMPOSE[@]}" build --progress=plain "$svc" >"/tmp/damascino-build-$svc.log" 2>&1 \
+      || "${COMPOSE[@]}" build --progress=plain "$svc" >"/tmp/damascino-build-$svc.log" 2>&1 \
+      || { tail -n 30 "/tmp/damascino-build-$svc.log"; die "Compilation de $svc impossible (journal : /tmp/damascino-build-$svc.log)."; }
+  done
+  echo "✅ Images compilées ($(date +%H:%M))"
+}
 if [ "${BUILD_ON_SERVER:-0}" = 1 ]; then
   # GitHub Actions unavailable (billing, quota…): compile the current code here (30 to 60 minutes on a small server)
-  echo "Compilation des images sur le serveur (BUILD_ON_SERVER=1) : 30 à 60 minutes sur une petite instance."
-  UP=(up -d --remove-orphans --build)
+  echo "Compilation des images sur le serveur (BUILD_ON_SERVER=1), une image à la fois : le site reste en ligne pendant ce temps."
+  build_images
+  UP=(up -d --remove-orphans --no-build)
 elif [ -n "$TOKEN" ] && printf '%s' "$TOKEN" | docker login ghcr.io -u x-access-token --password-stdin >/dev/null 2>&1 \
    && "${COMPOSE[@]}" pull --quiet; then
   echo "✅ Images téléchargées depuis ghcr.io (version ${IMAGE_TAG:-latest})"
 else
   warn "Images GitHub indisponibles (workflow « Images Docker et déploiement serveur » pas encore lancé, ou jeton sans read:packages) : compilation sur le serveur."
-  UP=(up -d --remove-orphans --build)
+  build_images
+  UP=(up -d --remove-orphans --no-build)
 fi
 docker logout ghcr.io >/dev/null 2>&1 || true
 started=0

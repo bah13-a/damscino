@@ -9,9 +9,9 @@ COPY partner-service/pom.xml partner-service/
 COPY privilege-service/pom.xml privilege-service/
 COPY reporting-service/pom.xml reporting-service/
 COPY maven-settings.xml /root/.m2/settings.xml
-RUN mvn -q -B -pl privilege-service -am dependency:go-offline -DskipTests || true
+RUN --mount=type=cache,target=/root/.m2/repository mvn -q -B -pl privilege-service -am dependency:go-offline -DskipTests || true
 COPY . .
-RUN mvn -q -B -Daether.connector.http.retryHandler.count=5 -pl privilege-service -am package -DskipTests
+RUN --mount=type=cache,target=/root/.m2/repository mvn -q -B -Daether.connector.http.retryHandler.count=5 -pl privilege-service -am package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
