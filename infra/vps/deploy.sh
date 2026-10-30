@@ -174,9 +174,20 @@ else
   UP=(up -d --remove-orphans --no-build)
 fi
 docker logout ghcr.io >/dev/null 2>&1 || true
+# The four Java services started together on 1 GB take turns in swap (the gateway then "Waiting" for 15+ minutes):
+# they are (re)started one after the other, each once the previous answers, then the rest of the stack.
+start_in_stages() {
+  local svc
+  "${COMPOSE[@]}" up -d --no-build --remove-orphans --wait --wait-timeout 300 postgres rabbitmq || return 1
+  for svc in identity-service partner-service privilege-service reporting-service; do
+    echo "── Démarrage de $svc ($(date +%H:%M)) ──"
+    "${COMPOSE[@]}" up -d --no-build --no-deps --wait --wait-timeout 900 "$svc" || return 1
+  done
+  "${COMPOSE[@]}" "${UP[@]}"
+}
 started=0
 for attempt in 1 2 3; do
-  if "${COMPOSE[@]}" "${UP[@]}"; then started=1; break; fi
+  if start_in_stages; then started=1; break; fi
   warn "Tentative $attempt : un service n'a pas démarré à temps."
   for svc in $("${COMPOSE[@]}" ps -a --format '{{.Service}} {{.Health}} {{.State}}' | awk '$2 == "unhealthy" || $3 == "exited" {print $1}'); do
     echo "── Dernières lignes de $svc ──"
